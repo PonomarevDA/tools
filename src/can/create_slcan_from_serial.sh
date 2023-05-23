@@ -32,15 +32,15 @@ else
     echo "- INTERFACE_NAME:" $INTERFACE_NAME "(auto)"
 fi
 if [ -z $DEV_PATH ]; then
-    echo "Can't find expected tty device."
+    echo "$0 ERROR on line ${LINENO}: Can't find expected tty device."
     exit 1
 fi
 if [ ! -c "$DEV_PATH" ]; then
-    echo "SLCAN creator ERROR: specified character device path is not exist."
+    echo "$0 ERROR on line ${LINENO}: specified character device path is not exist."
     exit 1
 fi
 if [[ $(ifconfig | grep $INTERFACE_NAME) ]]; then
-    echo "SLCAN creator: specified interface already exist, skip."
+    echo "$0 WARNING on line ${LINENO}: specified interface already exist, skip."
     exit 0
 fi
 
