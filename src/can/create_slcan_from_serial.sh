@@ -1,8 +1,17 @@
 #!/bin/bash
-# This script creates virtual CAN port using slcan
-# You can use it in 2 ways:
-# ./scripts/create_slcan_from_serial.sh - use automatic device path search
-# ./scripts/create_slcan_from_serial.sh /dev/ttyACMx - use user device path
+print_help() {
+    script_name=`basename "$0"`
+    echo "This script creates virtual CAN port using slcan. Usage:"
+    echo "./$script_name --help                 Call this help."
+    echo "./$script_name                        Use automatic device path search and default virtual CAN name."
+    echo "./$script_name /dev/ttyACMx           Use user device path and default virtual CAN name."
+    echo "./$script_name /dev/ttyACMx slcan0    Use user device path and specify virtual CAN name."
+}
+
+if [ "$1" = "--help" ]; then
+    print_help
+    exit 0
+fi
 
 # 1. Set tty settings
 echo "SLCAN creator settings:"
@@ -10,7 +19,8 @@ if [ $# -ge 1 ]; then
     DEV_PATH=$1
     echo "- DEV_PATH:" $DEV_PATH "(user specified)"
 else
-    source get_sniffer_symlink.sh
+    SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    source $SCRIPT_DIR/get_sniffer_symlink.sh
     DEV_PATH=$DEV_PATH_SYMLINK
     echo "- DEV_PATH:" $DEV_PATH "(auto)"
 fi
@@ -31,7 +41,7 @@ if [ ! -c "$DEV_PATH" ]; then
 fi
 if [[ $(ifconfig | grep $INTERFACE_NAME) ]]; then
     echo "SLCAN creator: specified interface already exist, skip."
-    exit 1
+    exit 0
 fi
 
 # 2. Run daemon slcand from can-utils - link serial interface with a virtual CAN device
