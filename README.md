@@ -4,6 +4,12 @@ This repository is a set of tools for Cyphal and DroneCAN applications.
 
 It is intended for use with [RaccoonLab CAN-sniffer and STM32 programmer](https://docs.raccoonlab.co/guide/programmer_sniffer/) with Ununtu 20.04 or newer.
 
+## Install dependencies
+
+```bash
+./scripts/install_for_ubuntu.sh
+```
+
 ## Cyphal usage
 
 The following script automatically:

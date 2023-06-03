@@ -1,4 +1,7 @@
 #!/bin/bash
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
 print_help() {
     script_name=`basename "$0"`
     echo "This script creates virtual CAN port using slcan. Usage:"
@@ -32,15 +35,15 @@ else
     echo "- INTERFACE_NAME:" $INTERFACE_NAME "(auto)"
 fi
 if [ -z $DEV_PATH ]; then
-    echo "$0 ERROR on line ${LINENO}: Can't find expected tty device."
+    printf "$RED$0 ERROR on line ${LINENO}: Can't find expected tty device.$NC\n"
     exit 1
 fi
 if [ ! -c "$DEV_PATH" ]; then
-    echo "$0 ERROR on line ${LINENO}: specified character device path is not exist."
+    printf "$RED$0 ERROR on line ${LINENO}: specified character device path is not exist.$NC\n"
     exit 1
 fi
 if [[ $(ifconfig | grep $INTERFACE_NAME) ]]; then
-    echo "$0 WARNING on line ${LINENO}: specified interface already exist, skip."
+    printf "$YELLOW$0 WARNING on line ${LINENO}: specified interface already exist, skip.$NC\n"
     exit 0
 fi
 
