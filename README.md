@@ -7,7 +7,7 @@ It is intended for use with [RaccoonLab CAN-sniffer and STM32 programmer](https:
 ## Install dependencies
 
 ```bash
-./scripts/install_for_ubuntu.sh
+./install_for_ubuntu.sh
 ```
 
 ## Cyphal usage
@@ -18,7 +18,7 @@ The following script automatically:
 3. Compile DSDL based on public regulated data types
 
 ```bash
-./scripts/cyphal/init.sh --help
+./cyphal/init.sh --help
 ```
 
 > The script expects you have clonned [public_regulated_data_types](https://github.com/OpenCyphal/public_regulated_data_types) inside this repository. It will compile everything into `compile_output` directory and create interface with name `slcan0`. You can override these parameters by manually setting the following environment variables: `REG_DATA_TYPE_PATH`, `YAKUT_COMPILE_OUTPUT`, `UAVCAN__CAN__IFACE`.
@@ -28,11 +28,11 @@ The following script automatically:
 Creare SLCAN:
 
 ```bash
-./scripts/can/create_slcan_from_serial.sh --help
+./can/create_slcan_from_serial.sh --help
 ```
 
 ## Updating STM32 firmware
 
 ```bash
-./scripts/stm32/flash.sh <path_to_the_binary.bin>
+./stm32/flash.sh <path_to_the_binary.bin>
 ```
