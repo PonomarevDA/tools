@@ -14,8 +14,7 @@ for dev_path in $EXPECTED_DEV_PATH; do
     [ -e "$dev_path" ] || continue
     check_vid_and_pid=$(udevadm info $dev_path |
                         grep -E "(ID_MODEL_ID=$EXPECTED_PID|ID_VENDOR_ID=$EXPECTED_VID)" -wc)
-    if [ "$check_vid_and_pid" == 2 ]
-    then
+    if [ "$check_vid_and_pid" == 2 ]; then
         DEV_PATH=$dev_path
         DEV_PATH_SYMLINK=$(find -L $EXPECTED_SYMLINK_PATH -samefile $DEV_PATH)
     fi
