@@ -1,7 +1,10 @@
 #!/bin/bash
+SCRIPT_NAME=$(basename $BASH_SOURCE)
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
 print_help() {
-    script_name=`basename "$0"`
-    echo "Usage: source $script_name"
+    echo "Usage: source $SCRIPT_NAME"
 }
 
 if [ "$1" = "--help" ]; then
@@ -10,7 +13,7 @@ if [ "$1" = "--help" ]; then
 fi
 
 if [ "${BASH_SOURCE[0]}" -ef "$0" ]; then
-    echo "$0 ERROR on line ${LINENO}: you should source this script, not execute it!"
+    printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: you should source this script, not execute it!$NC\n"
     exit 1
 fi
 
@@ -51,7 +54,7 @@ else
     dsdl_path_array=($REG_DATA_TYPE_PATH)
     for dsdl_path in "${dsdl_path_array[@]}"; do
         if [ ! -d "$dsdl_path" ]; then
-            echo "$0 WARN on line ${LINENO}: $dsdl_path does not exist."
+            printf "$YELLOW$SCRIPT_NAME WARN on line ${LINENO}: $dsdl_path does not exist.$NC\n"
         fi
     done
 
