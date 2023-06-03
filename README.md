@@ -1,4 +1,4 @@
-# Cyphal/DroneCAN tools
+# Cyphal/DroneCAN nodes tools
 
 This repository is a set of tools for Cyphal and DroneCAN applications.
 
@@ -23,4 +23,10 @@ Creare SLCAN:
 
 ```bash
 ./scripts/can/create_slcan_from_serial.sh --help
+```
+
+## Updating STM32 firmware
+
+```bash
+./scripts/stm32/flash.sh <path_to_the_binary.bin>
 ```
