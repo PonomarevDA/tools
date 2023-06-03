@@ -36,3 +36,15 @@ Creare SLCAN:
 ```bash
 ./stm32/flash.sh <path_to_the_binary.bin>
 ```
+
+## Auxilliary script
+
+These scripts must be called from the root repository:
+
+```bash
+./stm32/generate_git_hash.sh <output_dir>
+```
+
+```bash
+./stm32/generate_software_version.sh <output_dir>
+```
