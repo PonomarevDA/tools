@@ -19,8 +19,7 @@ if [ "${BASH_SOURCE[0]}" -ef "$0" ]; then
 fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-SRC_PATH="$(dirname "$SCRIPT_DIR")"
-REPOSITORY_PATH="$(dirname "$SRC_PATH")"
+REPOSITORY_PATH="$(dirname "$SCRIPT_DIR")"
 DEFAULT_PUBLIC_DSDL_PATH="$REPOSITORY_PATH/public_regulated_data_types"
 DEFAULT_UAVCAN_DSDL_PATH="$DEFAULT_PUBLIC_DSDL_PATH/uavcan"
 DEFAULT_REG_DSDL_PATH="$DEFAULT_PUBLIC_DSDL_PATH/reg"
@@ -28,7 +27,7 @@ DEFAULT_REG_DSDL_PATH="$DEFAULT_PUBLIC_DSDL_PATH/reg"
 # 1. Create SLCAN based on CAN sniffer
 res=$(ifconfig | grep slcan0)
 if [ -z "$res" ]; then
-    $SRC_PATH/can/create_slcan_from_serial.sh $CYPHAL_DEV_PATH_SYMLINK
+    $REPOSITORY_PATH/can/create_slcan_from_serial.sh $CYPHAL_DEV_PATH_SYMLINK
 fi
 
 # 2. Configure environment variables if they are not already configured
