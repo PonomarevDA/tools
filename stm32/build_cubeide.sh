@@ -27,15 +27,17 @@ VERBOSE=0
 SUPRES_BUILD_LOG=0
 PROJECT_NAME=charger
 PROJECT_PATH=.
+PROJECT_DIR=.
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 # 2. Parse arguments and use custom params
-while getopts "w:c:p:vsh" opt
+while getopts "w:c:p:d:vsh" opt
 do
 case $opt in
   w) WS_PATH=${OPTARG};;
   c) CUBE_IDE_PATH=${OPTARG};;
   p) PROJECT_NAME=${OPTARG};;
+  d) PROJECT_DIR=${OPTARG};;
   v) VERBOSE=1;;
   s) SUPRES_BUILD_LOG=1;;
   h) usage ;;
@@ -48,10 +50,11 @@ if [ $VERBOSE -eq 1 ]; then
   echo "Workspace path: ${WS_PATH}"
   echo "CubeIde path: ${CUBE_IDE_PATH}"
   echo "Project name: ${PROJECT_NAME}"
+  echo "Project directory: ${PROJECT_DIR}"
   echo ""
 fi
 
 # 4. Build
-cd $SCRIPT_DIR/..
+cd $PROJECT_DIR
 BUILD_ARGS="--launcher.suppressErrors -nosplash -application org.eclipse.cdt.managedbuilder.core.headlessbuild"
 cubeide_build
