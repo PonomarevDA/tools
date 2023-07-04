@@ -1,0 +1,40 @@
+metadata:
+  name : mini_v2
+  hardware_version : 2.0
+  software_version : 2.0
+  crc64 : f4de57b
+  uid : 49ff6e06 83654857 52260167
+  vsc : 2
+  coa:
+  date : Jul 30, 2023
+params:
+  uavcan.node_id : 51
+  stats.flight_time_sec : 2000
+  pwm.cmd_type : 0
+  pwm.frequency : 50
+  pwm.1_ch : 0
+  pwm.1_min : 1000
+  pwm.1_max : 2000
+  pwm.1_def : 1000
+  pwm.2_ch : 1
+  pwm.2_min : 1000
+  pwm.2_max : 2000
+  pwm.2_def : 1000
+  pwm.3_ch : 2
+  pwm.3_min : 1000
+  pwm.3_max : 2000
+  pwm.3_def : 1000
+  pwm.4_ch : 3
+  pwm.4_min : 1000
+  pwm.4_max : 2000
+  pwm.4_def : 1000
+  pwm.mot_num_poles : 28
+  pwm.fb_1_type : 1
+  pwm.fb_2_type : 1
+  crct.enable_5v_check : 1
+  crct.enable_vin_check : 0
+  cmd_ttl_ms : 500
+  system.log_level : 0
+  system.can_bus_check_level : 0
+  uavcan.node.name : mini_v2.0
+
