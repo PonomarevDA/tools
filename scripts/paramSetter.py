@@ -29,7 +29,7 @@ parser.add_argument("--rate", default=1, type=float, help="request rate")
 parser.add_argument("--canfd", default=False, action="store_true", help="send as CANFD")
 parser.add_argument('--debug', action=argparse.BooleanOptionalAction)
 parser.add_argument('--write', action=argparse.BooleanOptionalAction)
-parser.add_argument('--file-path', default="./tools/tests/params_example.yaml", type=str, help="Path to yaml file with parameter settings")
+parser.add_argument('--file-path', default="../tests/params_example.yaml", type=str, help="Path to yaml file with parameter settings")
 args = parser.parse_args()
 
 
