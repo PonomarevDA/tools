@@ -16,7 +16,7 @@ For more information launch with "--debug" flag"""
 
 class Logger:
     def __init__(self, debug : bool) -> None:
-        self.logger = logging.getLogger("ParamWriter")
+        self.logger = logging.getLogger("ParamsWriter")
         if debug:
             self.logger.setLevel(logging.DEBUG)
         else:
@@ -43,7 +43,7 @@ class Logger:
         self.logger.error(msg)
 
 
-class UNodeParamReader:
+class ParamsReader:
     def __init__(self, node, target_node_id : int, logger, max_request_number : int) -> None:
         self.node = node
         self.target_node_id = target_node_id
@@ -51,6 +51,17 @@ class UNodeParamReader:
         self.params = []
         self.is_read_finished = False
         self.max_request_number = max_request_number
+
+    def read_node_params(self) -> list:
+        self.logger.write_debug(f"Starting request to uNode with ID: {self.target_node_id}")
+        req_handler = partial(self._read_node_params, attempt=1)
+        req = uavcan.protocol.param.GetSet.Request(index=0)
+        self.node.request(req, self.target_node_id, req_handler)
+
+        while not self.is_read_finished:
+            self.node.spin(0.1)
+
+        return self.params
 
     @staticmethod
     def _extract_value(value):
@@ -83,7 +94,7 @@ class UNodeParamReader:
         param_name = ""
         for field_name, field in dronecan.get_fields(msg.response).items():
             if field_name == "value":
-                param_value, param_type = UNodeParamReader._extract_value(msg.response.value)
+                param_value, param_type = ParamsReader._extract_value(msg.response.value)
             elif field_name == "name":
                 param_name = field.decode()
 
@@ -95,7 +106,7 @@ class UNodeParamReader:
             self.logger.write_debug(f"{str1:<70}{str2:<20}{str3:<30}{str4}")
 
             self.params.append({
-                "param_type":param_type,
+                "param_type" : param_type,
                 "param_value" : param_value,
                 "param_name" : param_name}
             )
@@ -113,18 +124,7 @@ class UNodeParamReader:
         else:
             self.is_read_finished = True
 
-    def read_node_params(self) -> list:
-        self.logger.write_debug(f"Starting request to uNode with ID: {self.target_node_id}")
-        req_handler = partial(self._read_node_params, attempt=1)
-        req = uavcan.protocol.param.GetSet.Request(index=0)
-        self.node.request(req, self.target_node_id, req_handler)
-
-        while not self.is_read_finished:
-            self.node.spin(0.1)
-
-        return self.params
-
-class UNodeParamsYamlReader:
+class YamlParamsReader:
     def __init__(self, file_path : str, logger) -> None:
         self.file_path = file_path
         self.logger = logger
@@ -151,8 +151,8 @@ class ParamsChecker:
 
     def check_parameters(self, yaml_param_dict : dict, node_param_list : list) -> list:
         for param in node_param_list:
-            if param["param_type"] is None or\
-                param["param_value"] is None or\
+            if param["param_type"] is None or \
+                param["param_value"] is None or \
                 param["param_name"] == "" :
                 raise ValueError("Error during parameter check. Received invallid parameters from node")
 
@@ -172,7 +172,6 @@ class ParamsChecker:
             elif yaml_param_dict[param_name] != node_param_dict[param_name]["param_value"]:
                 params_to_update.append(param_name)
 
-
         err_str = ""
         if param_mismach:
             for pararm in param_mismach:
@@ -182,16 +181,12 @@ class ParamsChecker:
             for param in param_type_mismach:
                 err_str += f"Parameter {param[0]} has type mismach with parameter in uNode: expected type \"{param[1]}\"{os.linesep}"
 
-        if self.node_id_param_name in params_to_update:
-            raise ValueError(f"Error: uNode id mismach: given {self.target_node_id},"\
-                            f" but settings for {yaml_param_dict[self.node_id_param_name]}{os.linesep}")
-
         if err_str != "":
             raise ValueError(err_str)
 
         return params_to_update
 
-class UNodeParamWriter:
+class ParamsWriter:
     def __init__(self, node, target_node_id : int, params_to_write : list,
                  yaml_param_dict : dict, logger, max_request_number : int) -> None:
         self.node = node
@@ -201,6 +196,23 @@ class UNodeParamWriter:
         self.logger = logger
         self.is_write_finished = False
         self.max_request_number = max_request_number
+
+    def write_params(self) -> None:
+        debug_str = "Parameters requred to write: "
+        for param in self.params_to_write:
+            debug_str += f"{param}, "
+        self.logger.write_debug(debug_str)
+
+        req_handler = partial(self._write_params,
+                            curr_param_index = 0,
+                            attempt=1)
+        req = uavcan.protocol.param.GetSet.Request()
+        req.name = self.params_to_write[0]
+        req.value = ParamsWriter._value_to_uavcan(self.yaml_param_dict[self.params_to_write[0]])
+        self.node.request(req, self.target_node_id, req_handler)
+
+        while not self.is_write_finished:
+            self.node.spin(0.1)
 
     @staticmethod
     def _value_to_uavcan(value):
@@ -223,7 +235,7 @@ class UNodeParamWriter:
                 self.logger.write_error(_MAX_REQ_ERR_)
                 self.is_write_finished = True
             else:
-                self.logger.write_debug("Error during saving uNode parameters, retryin...")
+                self.logger.write_debug("Error during saving parameters, retrying...")
                 req_handler = partial(self._save_params, attempt=attempt+1)
                 req = uavcan.protocol.param.ExecuteOpcode.Request()
                 req.opcode = uavcan.protocol.param.ExecuteOpcode.Request().OPCODE_SAVE
@@ -244,7 +256,7 @@ class UNodeParamWriter:
                                   attempt=attempt+1)
             req = uavcan.protocol.param.GetSet.Request()
             req.name = self.params_to_write[curr_param_index]
-            req.value = UNodeParamWriter._value_to_uavcan(self.yaml_param_dict[self.params_to_write[curr_param_index]])
+            req.value = ParamsWriter._value_to_uavcan(self.yaml_param_dict[self.params_to_write[curr_param_index]])
             self.node.request(req, self.target_node_id, req_handler)
 
     def _write_params(self, event, curr_param_index: int, attempt : int) -> None:
@@ -266,28 +278,25 @@ class UNodeParamWriter:
                             attempt=1)
         req = uavcan.protocol.param.GetSet.Request()
         req.name = self.params_to_write[curr_param_index+1]
-        req.value = UNodeParamWriter._value_to_uavcan(self.yaml_param_dict[self.params_to_write[curr_param_index+1]])
+        req.value = ParamsWriter._value_to_uavcan(self.yaml_param_dict[self.params_to_write[curr_param_index+1]])
         self.node.request(req, self.target_node_id, req_handler)
 
+class NodeMonitor:
+    def __init__(self, node) -> None:
+        self.node = node
+        self.nodes = set()
+        self.node.add_handler(uavcan.protocol.NodeStatus, self.node_status_callback)
 
-    def write_params(self) -> None:
-        debug_str = "Parameters requred to write: "
-        for param in self.params_to_write:
-            debug_str += f"{param}, "
-        self.logger.write_debug(debug_str)
+    def node_status_callback(self, msg):
+        # Typically, 127 corresponds to gui_tool, so skip it
+        if msg.transfer.source_node_id != 127:
+            self.nodes.add(msg.transfer.source_node_id)
 
-        req_handler = partial(self._write_params,
-                            curr_param_index = 0,
-                            attempt=1)
-        req = uavcan.protocol.param.GetSet.Request()
-        req.name = self.params_to_write[0]
-        req.value = UNodeParamWriter._value_to_uavcan(self.yaml_param_dict[self.params_to_write[0]])
-        self.node.request(req, self.target_node_id, req_handler)
+    def wait_for_a_single_node(self):
+        self.node.spin(1.5)
+        return next(iter(self.nodes)) if len(self.nodes) == 1 else None
 
-        while not self.is_write_finished:
-            self.node.spin(0.1  )
-
-class UNodeParamHandler:
+class ParamsHandler:
     def __init__(self, target_node_id : int, max_request_number : int,
                  logger, file_path : str, node_id_param_name : str,
                  process_write : bool) -> None:
@@ -298,13 +307,20 @@ class UNodeParamHandler:
         self.node_id_param_name = node_id_param_name
         self.process_write = process_write
 
-    def run(self, init_struct : dict)->None:
+    def run(self, init_struct : dict) -> None:
         node = dronecan.make_node(**init_struct)
 
-        reader = UNodeParamReader(node, self.target_node_id, self.logger, self.max_request_number)
+        if self.target_node_id > 127:
+            node_monitor = NodeMonitor(node)
+            self.target_node_id = node_monitor.wait_for_a_single_node()
+            if self.target_node_id is None:
+                self.logger.write_error("Either there is no any online node or there are few of them!")
+                return
+
+        reader = ParamsReader(node, self.target_node_id, self.logger, self.max_request_number)
         node_params = reader.read_node_params()
 
-        yaml_reader = UNodeParamsYamlReader(self.file_path, self.logger)
+        yaml_reader = YamlParamsReader(self.file_path, self.logger)
         yaml_params = yaml_reader.read_yaml_parameters()
         if not yaml_params:
             return
@@ -314,7 +330,7 @@ class UNodeParamHandler:
         try:
             params_to_write = checker.check_parameters(yaml_params["params"], node_params)
         except ValueError as err:
-            self.logger.write_error("Error occured during comparing parameters on uNode and from yaml file:")
+            self.logger.write_error("Error occured during comparing parameters on node and from yaml file:")
             self.logger.write_error(err.args[0])
             return
 
@@ -323,9 +339,9 @@ class UNodeParamHandler:
             self.logger.write_info("All parameters are valid")
         elif self.process_write:
             self.logger.write_info("Start writing parameters to node")
-            writer = UNodeParamWriter(node, self.target_node_id,
-                                      params_to_write, yaml_params["params"],
-                                      self.logger, self.max_request_number)
+            writer = ParamsWriter(node, self.target_node_id,
+                                  params_to_write, yaml_params["params"],
+                                  self.logger, self.max_request_number)
             writer.write_params()
         else:
             msg = "\n    Following parameters required updating:\n"
@@ -338,7 +354,7 @@ def main():
     parser = argparse.ArgumentParser(description='loop calling GetNodeInfo')
     parser.add_argument("--bitrate", default=1000000, type=int, help="CAN bit rate")
     parser.add_argument("--node-id", default=100, type=int, help="CAN node ID")
-    parser.add_argument("--target-node-id", default=49, type=int, help="target CAN node ID")
+    parser.add_argument("--target-node-id", default=255, type=int, help="target CAN node ID")
     parser.add_argument("--max-req-number", default=10, type=int, help="Maximum number of attempt for performing operation")
     parser.add_argument("--device", default="slcan0", type=str, help="Can device")
     parser.add_argument("--id-param-name", default="uavcan.node_id", type=str, help="uNode id parameter name")
@@ -350,9 +366,9 @@ def main():
     args = parser.parse_args()
 
     logger = Logger(args.debug)
-    handler = UNodeParamHandler(args.target_node_id, args.max_req_number,
-                                logger, args.file_path, args.id_param_name,
-                                args.write)
+    handler = ParamsHandler(args.target_node_id, args.max_req_number,
+                            logger, args.file_path, args.id_param_name,
+                            args.write)
 
     init_struct = {"can_device_name" : args.device,
           "bustype" : args.bustype,
