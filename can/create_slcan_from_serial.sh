@@ -1,4 +1,5 @@
 #!/bin/bash
+SCRIPT_NAME=$(basename $BASH_SOURCE)
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
@@ -35,15 +36,15 @@ else
     echo "- INTERFACE_NAME:" $INTERFACE_NAME "(auto)"
 fi
 if [ -z $DEV_PATH ]; then
-    printf "$RED$0 ERROR on line ${LINENO}: Can't find expected tty device.$NC\n"
+    printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: Can't find expected tty device.$NC\n"
     exit 1
 fi
 if [ ! -c "$DEV_PATH" ]; then
-    printf "$RED$0 ERROR on line ${LINENO}: specified character device path is not exist.$NC\n"
+    printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: specified character device path is not exist.$NC\n"
     exit 1
 fi
 if [[ $(ifconfig | grep $INTERFACE_NAME) ]]; then
-    printf "$YELLOW$0 WARNING on line ${LINENO}: specified interface already exist, skip.$NC\n"
+    printf "$SCRIPT_NAME INFO on line ${LINENO}: specified interface already exist, skip.\n"
     exit 0
 fi
 
