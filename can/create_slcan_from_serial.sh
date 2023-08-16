@@ -40,7 +40,7 @@ if [ -z $DEV_PATH ]; then
     exit 1
 fi
 if [ ! -c "$DEV_PATH" ]; then
-    printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: specified character device path is not exist.$NC\n"
+    printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: specified character device path $DEV_PATH is not exist.$NC\n"
     exit 1
 fi
 if [[ $(ifconfig | grep $INTERFACE_NAME) ]]; then
@@ -56,7 +56,7 @@ fi
 #   -S $BAUD_RATE   option means uart baud rate
 #   $DEV_PATH       position argument means port name
 # sudo slcand -o -s8 -t hw -S $BAUD_RATE $DEV_PATH
-sudo slcand -o -c -f -s8 -t hw -S 1000000 $DEV_PATH
+sudo slcand -o -c -f -s8 -t hw -S 1000000 $DEV_PATH $INTERFACE_NAME
 
 sudo ip link set up $INTERFACE_NAME
 
