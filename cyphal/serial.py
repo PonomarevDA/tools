@@ -19,7 +19,7 @@ class UbxTxFragmentSub:
     async def _sub_cb(self, msg, _, chunk_size=22):
         total_size = len(msg.data.tobytes())
         for first_index in range(0, total_size, chunk_size):
-            last_index = first_index + min(total_size - first_index, chunk_size - 1)
+            last_index = first_index + min(total_size - first_index, chunk_size)
             length = last_index - first_index
             print(f"RX[{length : < 3}] ", end ="")
             for idx in range(first_index, last_index):
