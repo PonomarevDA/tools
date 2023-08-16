@@ -6,5 +6,5 @@ Send commands to ublox, print everything from ublox to the screen.
 
 ```bash
 source cyphal/ds015.py
-./cyphal/serial.py
+./cyphal/forwarder.py
 ```

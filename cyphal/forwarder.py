@@ -10,13 +10,18 @@ import uavcan.node.GetInfo_1_0 as GetInfo_1_0
 import uavcan.metatransport.serial.Fragment_0_2 as Fragment_0_2
 
 class UbxTxFragmentSub:
-    def __init__(self, node, port_id) -> None:
+    def __init__(self, node, port_id, sub_verbose) -> None:
         node.registry["uavcan.sub.ubx_tx.id"] = port_id
         self._sp_sub = node.make_subscriber(Fragment_0_2, "ubx_tx")
         self._sp_sub.receive_in_background(self._sub_cb)
         self._rx_counter = 0
+        self._verbose = sub_verbose
 
-    async def _sub_cb(self, msg, _, chunk_size=22):
+    async def _sub_cb(self, msg, _):
+        if self._verbose:
+            await self._print(msg)
+
+    async def _print(self, msg, chunk_size=22):
         total_size = len(msg.data.tobytes())
         for first_index in range(0, total_size, chunk_size):
             last_index = first_index + min(total_size - first_index, chunk_size)
@@ -34,6 +39,7 @@ class UbxTxFragmentSub:
             print("")
             self._rx_counter += length
 
+
 class UbxRxFragmentPub:
     def __init__(self, node, port_id) -> None:
         node.registry["uavcan.pub.ubx_rx.id"] = port_id
@@ -42,6 +48,7 @@ class UbxRxFragmentPub:
 
     async def publish(self, text):
         self._msg.data = text
+        print(f"TX[{len(text) : < 3}] {text}.")
         await self._pub.publish(self._msg)
 
 class SerialForwarder:
@@ -49,10 +56,10 @@ class SerialForwarder:
         self._ubx_rx_port_id = ubx_rx_port_id
         self._ubx_tx_port_id = ubx_tx_port_id
 
-    def run(self, commands, loop=False):
-        asyncio.run(self._main(commands, loop))
+    def run(self, commands, send_loop=False, recv_loop=False, sub_verbose=False):
+        asyncio.run(self._main(commands, send_loop, recv_loop, sub_verbose))
 
-    async def _main(self, commands, loop):
+    async def _main(self, commands, send_loop, recv_loop, sub_verbose):
         node_info = GetInfo_1_0.Response(
             software_version=uavcan.node.Version_1_0(major=1, minor=0),
             name="ubx"
@@ -63,16 +70,18 @@ class SerialForwarder:
         self._node.start()
 
         self.ubx_rx_serial_pub = UbxRxFragmentPub(self._node, self._ubx_rx_port_id)
-        self.ubx_tx_serial_sub = UbxTxFragmentSub(self._node, self._ubx_tx_port_id)
+        self.ubx_tx_serial_sub = UbxTxFragmentSub(self._node, self._ubx_tx_port_id, sub_verbose)
 
         command_index = 0
 
         while True:
             await asyncio.sleep(1)
 
-            if loop or command_index < len(commands):
+            if send_loop or command_index < len(commands):
                 await self.ubx_rx_serial_pub.publish(commands[command_index % len(commands)])
                 command_index += 1
+            elif recv_loop is False:
+                return
 
 if __name__ == "__main__":
     commands = [
@@ -83,4 +92,4 @@ if __name__ == "__main__":
         "ubx save config!"
     ]
 
-    SerialForwarder(3500, 3501).run(commands)
+    SerialForwarder(3500, 3501).run(commands, False, True, sub_verbose=True)
