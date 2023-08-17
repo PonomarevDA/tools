@@ -2,12 +2,16 @@
 import asyncio
 import sys
 import pathlib
+import subprocess
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "compile_output"))
 import pycyphal.application
 import uavcan.node
 import uavcan.node.GetInfo_1_0 as GetInfo_1_0
 import uavcan.metatransport.serial.Fragment_0_2 as Fragment_0_2
+
+UBX_RX_REG = "uavcan.sub.gps.ubx_rx.id"
+UBX_TX_REG = "uavcan.pub.gps.ubx_tx.id"
 
 class UbxTxFragmentSub:
     def __init__(self, node, port_id, sub_verbose) -> None:
@@ -48,13 +52,20 @@ class UbxRxFragmentPub:
 
     async def publish(self, text):
         self._msg.data = text
-        print(f"TX[{len(text) : < 3}] {text}.")
+        print(f"TX[{len(text) : < 3}] {text}")
         await self._pub.publish(self._msg)
 
 class SerialForwarder:
-    def __init__(self, ubx_rx_port_id, ubx_tx_port_id):
-        self._ubx_rx_port_id = ubx_rx_port_id
-        self._ubx_tx_port_id = ubx_tx_port_id
+    def __init__(self, node_id):
+        self._ubx_tx_port_id = get_node_register_value(node_id, UBX_TX_REG)
+        self._ubx_rx_port_id = get_node_register_value(node_id, UBX_RX_REG)
+
+        print(f" --------------------                                       --------------")
+        print(f" |              PUB | >> {UBX_RX_REG} ({self._ubx_rx_port_id}) >> | RXI        |")
+        print(f" | forwarder.py     |                                       |      UBLOX |")
+        print(f" |              SUB | << {UBX_TX_REG} ({self._ubx_tx_port_id}) << | TXO        |")
+        print(f" --------------------                                       --------------")
+        print("")
 
     def run(self, commands, send_loop=False, recv_loop=False, sub_verbose=False):
         asyncio.run(self._main(commands, send_loop, recv_loop, sub_verbose))
@@ -67,6 +78,7 @@ class SerialForwarder:
         self._node = pycyphal.application.make_node(node_info)
         self._node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
         self._node.heartbeat_publisher.vendor_specific_status_code = 50
+    
         self._node.start()
 
         self.ubx_rx_serial_pub = UbxRxFragmentPub(self._node, self._ubx_rx_port_id)
@@ -83,13 +95,18 @@ class SerialForwarder:
             elif recv_loop is False:
                 return
 
+def get_node_register_value(node_id, register_name):
+    process = subprocess.Popen(f"y r {node_id} {register_name}".split(), stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    return int(output)
+
 if __name__ == "__main__":
     commands = [
-        "ubx reset!",
-        "ubx set baudrate!",
-        "ubx disable nmea!",
-        "ubx set required packages!",
-        "ubx save config!"
+        "ubx reset",
+        "ubx set baudrate",
+        "ubx disable nmea",
+        "ubx set required packages",
+        "ubx save config"
     ]
 
-    SerialForwarder(3500, 3501).run(commands, False, True, sub_verbose=True)
+    SerialForwarder(node_id=50).run(commands, True, True, sub_verbose=False)
