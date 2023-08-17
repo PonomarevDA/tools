@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import time
 import asyncio
 import sys
 import pathlib
@@ -12,6 +13,7 @@ import uavcan.metatransport.serial.Fragment_0_2 as Fragment_0_2
 
 UBX_RX_REG = "uavcan.sub.gps.ubx_rx.id"
 UBX_TX_REG = "uavcan.pub.gps.ubx_tx.id"
+
 
 class UbxTxFragmentSub:
     def __init__(self, node, port_id, sub_verbose) -> None:
@@ -43,6 +45,15 @@ class UbxTxFragmentSub:
             print("")
             self._rx_counter += length
 
+class TimeSub:
+    def __init__(self, node, port_id) -> None:
+        node.registry["uavcan.sub.time_utc.id"] = port_id
+        self._sp_sub = node.make_subscriber(uavcan.time.SynchronizedTimestamp_1_0, "time_utc")
+        self._sp_sub.receive_in_background(self._sub_cb)
+
+    async def _sub_cb(self, msg, _):
+        error_sec = time.time() - msg.microsecond / 1000000
+        print(error_sec)
 
 class UbxRxFragmentPub:
     def __init__(self, node, port_id) -> None:
@@ -68,7 +79,10 @@ class SerialForwarder:
         print("")
 
     def run(self, commands, send_loop=False, recv_loop=False, sub_verbose=False):
-        asyncio.run(self._main(commands, send_loop, recv_loop, sub_verbose))
+        try:
+            asyncio.run(self._main(commands, send_loop, recv_loop, sub_verbose))
+        except KeyboardInterrupt:
+            pass
 
     async def _main(self, commands, send_loop, recv_loop, sub_verbose):
         node_info = GetInfo_1_0.Response(
@@ -81,8 +95,10 @@ class SerialForwarder:
     
         self._node.start()
 
+        self.time_utc_sub = TimeSub(self._node, get_node_register_value(50, "uavcan.pub.gps.time_utc.id"))
         self.ubx_rx_serial_pub = UbxRxFragmentPub(self._node, self._ubx_rx_port_id)
         self.ubx_tx_serial_sub = UbxTxFragmentSub(self._node, self._ubx_tx_port_id, sub_verbose)
+        self._node.start()
 
         command_index = 0
 
