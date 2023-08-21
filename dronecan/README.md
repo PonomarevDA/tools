@@ -40,7 +40,7 @@ Clone the repo to RaspberryPi and run node_parser.py
 
 ## Arguments
 
-* Port - Serial port used to connect
+* Port - Interface name used to connect
 * Outfile - Name of csv file where result will be stored
 * Logtime - Dutation of logging
 
