@@ -68,3 +68,8 @@ sudo ip link set up $INTERFACE_NAME
 # More about queueing disciplines:
 # https://rtime.felk.cvut.cz/can/socketcan-qdisc-final.pdf
 sudo tc qdisc add dev $INTERFACE_NAME root handle 1: pfifo_head_drop limit 1000
+if [[ -z $(ifconfig | grep $INTERFACE_NAME) ]]; then
+    printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: Interface '$INTERFACE_NAME' has not been successfully created.$NC\n"
+    # Note: We must use return in a sourced script, otherwise it must be exit!
+    [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 0 || return
+fi
