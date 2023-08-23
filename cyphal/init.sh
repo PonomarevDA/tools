@@ -9,7 +9,7 @@ print_help() {
 
 if [ "$1" = "--help" ]; then
     print_help
-    # Note: We must use return in a sourced script, otherwise it must me exit!
+    # Note: We must use return in a sourced script, otherwise it must be exit!
     [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 0 || return
 fi
 
