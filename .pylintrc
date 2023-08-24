@@ -1,0 +1,11 @@
+[MASTER]
+good-names=x,y,z,dx,dy,dz,b,c
+disable=
+    C0114, # missing-module-docstring
+    C0116, # missing-function-docstring
+    C0115, # missing-class-docstring
+    R0903, # too-few-public-methods
+    R1732, # consider-using-with
+    E0402, # relative-beyond-top-level
+    E0401, # import-error
+    C0103  # invalid-name
