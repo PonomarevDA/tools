@@ -7,7 +7,7 @@ class UbloxCommands:
     def __init__(self) -> None:
         pass
 
-    def factory_reset(self):
+    def reset(self):
         return [0xB5, 0x62, 0x06, 0x09, 0x0D, 0x00, 0xFF, 0xFF, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x03, 0x1B,
                 0x9A]
@@ -63,7 +63,7 @@ def main():
     generator = UbloxCommands()
 
     print("Factory reset")
-    print(generator.factory_reset())
+    print(generator.reset())
     print("")
 
     print("Save config:")

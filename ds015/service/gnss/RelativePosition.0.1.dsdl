@@ -1,0 +1,11 @@
+# Relative positioning information in NED frame
+# This message contains the relative position vector from the reference station to the rover.
+
+uint32 time_week_ms
+uint16 time_week
+# Time of week (TOW) timestamp indicates the GPS time at which the navigation epoch occurred.
+
+uavcan.si.unit.length.Vector3.1.0 relative_position
+# Alternatively, we can create physics.kinematics.cartesian.Point.0.1 with float32
+
+@sealed

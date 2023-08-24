@@ -1,0 +1,14 @@
+# This message outputs the covariance matrices for the position and velocity
+# solutions in the topocentric coordinate system defined as the local-level
+# North (N), East (E), Down (D) frame. As the covariance matrices are
+# symmetric, only the upper triangular part is output.
+
+float16[6] point_covariance_urt   # [meter^2]
+# Upper-right triangle of the covariance matrix.
+# The position covariance is defined relative to a tangential plane through the specified latitude/longitude.
+# Element ordering: latitude, longitude, altitude. It is chosen to match the axis ordering of the NED frame.
+
+float16[6] velocity_covariance_urt   # [meter^2]
+# [(meter/second)^2] Upper-right triangle of the covariance matrix.
+
+@sealed

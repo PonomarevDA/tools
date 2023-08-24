@@ -35,7 +35,7 @@ if [ -z ${REG_DATA_TYPE_PATH+x} ]; then
     REG_DATA_TYPE_PATH="$DEFAULT_UAVCAN_DSDL_PATH $DEFAULT_REG_DSDL_PATH"
 fi
 if [ -z ${YAKUT_COMPILE_OUTPUT+x} ]; then
-    export YAKUT_COMPILE_OUTPUT="$REPOSITORY_PATH/compile_output"
+    export YAKUT_COMPILE_OUTPUT="$REPOSITORY_PATH/build/nunavut_out"
 fi
 if [ -z ${YAKUT_PATH+x} ]; then
     export YAKUT_PATH="$YAKUT_COMPILE_OUTPUT"

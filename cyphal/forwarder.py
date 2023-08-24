@@ -5,7 +5,7 @@ import sys
 import pathlib
 import subprocess
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "compile_output"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "build/nunavut_out"))
 import pycyphal.application
 import uavcan.node
 import uavcan.node.GetInfo_1_0 as GetInfo_1_0
@@ -52,8 +52,7 @@ class TimeSub:
         self._sp_sub.receive_in_background(self._sub_cb)
 
     async def _sub_cb(self, msg, _):
-        error_sec = time.time() - msg.microsecond / 1000000
-        print(error_sec)
+        pass
 
 class UbxRxFragmentPub:
     def __init__(self, node, port_id) -> None:
@@ -71,12 +70,16 @@ class SerialForwarder:
         self._ubx_tx_port_id = get_node_register_value(node_id, UBX_TX_REG)
         self._ubx_rx_port_id = get_node_register_value(node_id, UBX_RX_REG)
 
-        print(f" --------------------                                       --------------")
-        print(f" |              PUB | >> {UBX_RX_REG} ({self._ubx_rx_port_id}) >> | RXI        |")
-        print(f" | forwarder.py     |                                       |      UBLOX |")
-        print(f" |              SUB | << {UBX_TX_REG} ({self._ubx_tx_port_id}) << | TXO        |")
-        print(f" --------------------                                       --------------")
+        print(f" --------------------                                        --------------")
+        print(f" |              PUB | >> {UBX_RX_REG} ({self._ubx_rx_port_id :<5}) >> | RXI        |")
+        print(f" | forwarder.py     |                                        |      UBLOX |")
+        print(f" |              SUB | << {UBX_TX_REG} ({self._ubx_tx_port_id :<5}) << | TXO        |")
+        print(f" --------------------                                        --------------")
         print("")
+
+        if self._ubx_tx_port_id == 65535 or self._ubx_rx_port_id == 65535:
+            print("Error: required registers are not configured!")
+            exit(-1)
 
     def run(self, commands, send_loop=False, recv_loop=False, sub_verbose=False):
         try:
