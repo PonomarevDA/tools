@@ -1,3 +1,4 @@
+import time
 from argparse import ArgumentParser
 import dronecan
 from dronecan import uavcan
@@ -20,7 +21,8 @@ while True:
         def do_publish():
             msg = uavcan.equipment.esc.RawCommand(cmd=i)
             node.broadcast(msg)
-            # print('publishing')
+
+            print('publishing')
 
         node.periodic(1/10, do_publish)
         node.spin(timeout=2)
