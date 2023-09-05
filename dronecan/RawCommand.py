@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 This script sends RawMessage to node to test servo motor life.
 To run this script you must first create an slcan from the serial port with the specified name.
