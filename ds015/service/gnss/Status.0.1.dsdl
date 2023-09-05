@@ -1,0 +1,35 @@
+# A generic GNSS information.
+
+truncated uint2 status
+uint2 STATUS_NO_FIX = 0
+uint2 STATUS_TIME_ONLY = 1
+uint2 STATUS_2D_FIX = 2
+uint2 STATUS_3D_FIX = 3
+
+truncated uint2 mode
+uint2 MODE_SINGLE      = 0
+uint2 MODE_DGPS        = 1
+uint2 MODE_RTK         = 2
+uint2 MODE_PPP         = 3
+
+truncated uint2 sub_mode
+uint2 SUB_MODE_DGPS_OTHER    = 0
+uint2 SUB_MODE_DGPS_SBAS     = 1
+uint2 SUB_MODE_RTK_FLOAT     = 0
+uint2 SUB_MODE_RTK_FIXED     = 1
+
+truncated uint2 jamming_state
+uint2 JAMMING_STATE_UNKNOWN     = 0
+uint2 JAMMING_STATE_OK          = 1
+uint2 JAMMING_STATE_WARNING     = 2
+uint2 JAMMING_STATE_CRITICAL    = 3
+# Indicates whether jamming has been detected or suspected by the receivers
+
+truncated uint2 spoofing_state
+uint2 SPOOFING_STATE_UNKNOWN    = 0
+uint2 SPOOFING_STATE_NONE       = 1
+uint2 SPOOFING_STATE_INDICATED  = 2
+uint2 SPOOFING_STATE_MULTIPLE   = 3
+# Indicates whether spoofing has been detected or suspected by the receivers
+
+@sealed

@@ -1,0 +1,28 @@
+name: cyphal_init
+
+on: [push]
+jobs:
+  cyphal_init:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y linux-modules-extra-$(uname -r)
+          python3 -m pip install yakut
+
+      - uses: actions/checkout@v3
+        with:
+          path: 'repository'
+
+      - name: vcan
+        run: ./repository/can/vcan.sh slcan0
+
+      - uses: actions/checkout@v3
+        with:
+          repository: OpenCyphal/public_regulated_data_types
+          path: 'repository/public_regulated_data_types'
+
+      - name: test cyphal/init.sh
+        run: source repository/cyphal/init.sh

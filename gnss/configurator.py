@@ -11,12 +11,18 @@ from ubx_cmd import UbloxCommands
 from forwarder import SerialForwarder
 
 
-def main(protocol, interface, config):
+def main(protocol, interface, cmd):
     command_generator = UbloxCommands()
 
-    commands = []
-    commands.append(command_generator.factory_reset())
-    # commands.append(command_generator.change_baudrate_m8(38400))
+    if cmd == 'reset':
+        commands = [command_generator.reset()]
+    else:
+        print("Command: nothing to do. Specify --cmd argument.")
+        return
+
+    if interface != 'slcan0':
+        print("Interface: only slcan0 is supported.")
+        return
 
     if protocol == "cyphal":
         SerialForwarder(node_id=50).run(commands, False, False, sub_verbose=False)
@@ -27,8 +33,8 @@ def main(protocol, interface, config):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--protocol", help="Options: cyphal, dronecan, serial", default='cyphal')
-    parser.add_argument("-s", "--interface", help="can0, slcan0, /dev/ttyACM0, COM15, ttyS0, etc", default='slcan0')
-    parser.add_argument("-o", "--config", help="Config file with commands")
+    parser.add_argument("-i", "--interface", help="can0, slcan0, /dev/ttyACM0, COM15, ttyS0, etc", default='slcan0')
+    parser.add_argument("-c", "--cmd", help="Commands: reset")
     args = parser.parse_args()
 
-    main(args.protocol, args.interface, args.config)
+    main(args.protocol, args.interface, args.cmd)

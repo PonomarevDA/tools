@@ -1,0 +1,33 @@
+# A generic GNSS information.
+
+Status.0.1 status
+
+uint32 time_week_ms
+uint16 time_week
+# Time of week (TOW) timestamp indicates the GPS time at which the navigation epoch occurred.
+
+ds015.physics.kinematics.geodetic.Point.0.1 point
+uavcan.si.unit.velocity.Vector3.1.0 velocity
+uavcan.si.unit.angle.Scalar.1.0 yaw
+
+float16 horizontal_accuracy
+# Horizontal RMS accuracy estimate in m
+
+float16 vertical_accuracy
+# Vertical RMS accuracy estimate in m
+
+float16 speed_accuracy
+# 3D velocity RMS accuracy estimate in m/s
+
+uavcan.si.unit.angle.Scalar.1.0 yaw_accuracy
+# heading accuracy of the GPS in radians
+
+float16 hdop
+# Horizontal dilution of precision in meters
+
+float16 vdop
+# Vertical dilution of precision in meters
+
+uint8 num_sats
+
+@sealed

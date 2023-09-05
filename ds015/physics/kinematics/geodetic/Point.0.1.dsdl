@@ -1,0 +1,10 @@
+# Geodetic position: latitude, longitude, and altitude.
+# The order is chosen to match the axis ordering of the NED frame.
+
+float64 latitude   # [radian]
+float64 longitude  # [radian]
+
+uavcan.si.unit.length.Scalar.1.0 altitude
+# Distance between the local mean sea level (MSL) and the focal point of the antenna. Positive altitude above the MSL.
+
+@sealed

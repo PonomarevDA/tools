@@ -22,7 +22,7 @@ EXPECTED_SYMLINK_PATH="/dev/serial/by-id/"
 for dev_path in $EXPECTED_DEV_PATH; do
     [ -e "$dev_path" ] || continue
     check_vid_and_pid=$(udevadm info $dev_path |
-                        grep -E "(ID_MODEL_ID=$EXPECTED_PID|ID_VENDOR_ID=$EXPECTED_VID)" -wc)
+                        grep -E "(ID_MODEL_ID=$EXPECTED_PID|ID_VENDOR_ID=$EXPECTED_VID)" -wc || true)
     if [ "$check_vid_and_pid" == 2 ]; then
         DEV_PATH=$dev_path
         DEV_PATH_SYMLINK=$(find -L $EXPECTED_SYMLINK_PATH -samefile $DEV_PATH)
