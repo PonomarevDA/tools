@@ -68,6 +68,9 @@ def switch_data():
         print('Exception dronecan.driver.common.TxQueueFullError catched')
     except dronecan.transport.TransferError:
         print('Exception dronecan.transport.TransferError catched')
+    except Exception as err:
+        print(err)
+
 
 
 if args.duration == '0':  # If duration is '0' then script never ends
