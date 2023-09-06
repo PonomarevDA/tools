@@ -1,21 +1,24 @@
 # CAN tools
 
-## Create CAN interface over serial CAN device
+**Install**
 
 ```bash
-sudo apt-get install can-utils
+./can/install.sh
+```
 
+**Create CAN interface based on serial CAN device**
+
+```bash
 ./can/create_slcan_from_serial.sh --help
 ```
 
-## Create Virtual CAN interface
+**Create Virtual CAN interface**
 
 ```bash
-sudo apt-get install -y linux-modules-extra-$(uname -r)
-python3 -m pip install yakut
-
-./can/vcan.sh slcan0
+./can/vcan.sh --help
 ```
+
+# Notes
 
 ## CAN over Serial
 
@@ -26,7 +29,7 @@ Reference: [hhttps://python-can.readthedocs.io/en/master/interfaces/serial.html]
 | | 1          | 4         | 1   | 4  | 0-8     | 1        |
 | | 0xAA       | 4         | 1   | 4  |         | 0xBB     |
 
-Empty frame is 11 bytes length, full frame is 19 bytes length.
+Empty frame is 11 bytes length, 8-byte frame is 19 bytes length.
 
 ## CAN over Serial / SLCAN (LAWICEL)
 
@@ -37,4 +40,4 @@ Reference: [https://python-can.readthedocs.io/en/master/interfaces/slcan.html](h
 | | 1          | 8  | 1    | 0-16    | 1        |
 | | 'T'        |    |      |         | '\r'     |
 
-Empty frame is 11 bytes length, full frame is 27 bytes length.
+Empty frame is 11 bytes length, 8-byte frame is 27 bytes length.
