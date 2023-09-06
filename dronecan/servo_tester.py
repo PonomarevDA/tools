@@ -43,11 +43,16 @@ def switch_data():
     :param i: data of message that affects on do_publish function
     :return:
     """
-    global i
-    i = [8191, 0, 0, 0, 0, 0, 0, 0]
-    node.spin(timeout=int(args.timeout))
-    i = [0, 0, 0, 0, 0, 0, 0, 0]
-    node.spin(timeout=int(args.timeout))
+    try:
+        global i
+        i = [8191, 0, 0, 0, 0, 0, 0, 0]
+        node.spin(timeout=int(args.timeout))
+        i = [0, 0, 0, 0, 0, 0, 0, 0]
+        node.spin(timeout=int(args.timeout))
+    except dronecan.driver.common.TxQueueFullError:
+        print('Exception dronecan.driver.common.TxQueueFullError catched')
+    except dronecan.transport.TransferError:
+        print('Exception dronecan.transport.TransferError catched')
 
 
 if args.duration == '0':  # If duration is '0' then script never ends
