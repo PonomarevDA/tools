@@ -48,18 +48,25 @@ class NodeNameChecker:
         for _ in range(number_of_attempts):
             response = await client.call(request)
             if response is not None:
-                name = np_array_to_string(response[0].name)
-                print(self.check_node_name(name), name)
                 break
             await asyncio.sleep(1)
 
+        if response is None:
+            print("The node has not respond on GetInfo request.")
+            return
+
+        name = np_array_to_string(response[0].name)
+        if not self.check_node_name(name):
+            print(f"The node name {name} does not follow the node name pattern.")
+
     @staticmethod
     def check_node_name(node_name):
-        pattern = r'^[a-z0-9]+(\.[a-z0-9]+){3}$'
+        pattern = r'^[a-z0-9_\-]+(\.[a-z0-9_\-]+)+$'
         return re.match(pattern, node_name) is not None
 
 
 class HearbeatFrequencyChecker:
+    """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/node/7509.Heartbeat.1.0.dsdl"""
     def __init__(self, cyphal_node, dest_node_id):
         self._node = cyphal_node
         self._dest_node_id = dest_node_id
@@ -71,10 +78,11 @@ class HearbeatFrequencyChecker:
         await asyncio.sleep(9)
         sub.close()
         periods = self.calculate_time_differences(self._heartbeat_timestamps)
-        if periods is None or periods[0] < 1 or periods[1] > 3:
-            print(f"Heartbeat is bad: {periods}")
-        else:
-            print(f"Heartbeat is fine: {periods}")
+        if periods is None or periods[0] < 0.9 or periods[1] > 3:
+            eror_msg = f"Violation of: {HearbeatFrequencyChecker.__doc__} \n" + \
+                    f"Details: got {len(self._heartbeat_timestamps)} heartbeats within 9 sec" + \
+                    f" (min period = {periods[0]}, max period = {periods[1]})."
+            print(eror_msg)
 
     async def _heartbeat_callback(self, _, transfer_from):
         if transfer_from.source_node_id == self._dest_node_id:
