@@ -124,7 +124,7 @@ class PortRegistersTypeChecker:
     async def run(self):
         register_names = await request_regiter_names(self._node, self._dest_node_id)
 
-        ports = {}
+        bad_ports = {}
         access_request = uavcan.register.Access_1_0.Request()
         access_client = self._node.make_client(uavcan.register.Access_1_0, self._dest_node_id)
         for register_name in register_names:
@@ -134,20 +134,22 @@ class PortRegistersTypeChecker:
             access_request.name.name = register_name
             access_response = await access_client.call(access_request)
 
-            ports[register_name] = None if access_response is None else access_response[0].value
+            if access_response is None:
+                bad_ports[register_name] = None
+            elif access_response[0].value.natural16 is None:
+                bad_ports[register_name] = access_response[0]
+            elif access_response[0]._mutable is False or access_response[0].persistent is False:
+                bad_ports[register_name] = access_response[0]
 
-        is_successfull = False
-        for port_name, value in ports.items():
-            if value is None:
-                if not is_successfull:
-                    print(f"Violation of: {PortRegistersTypeChecker.__doc__}\nDetails:")
-                    is_successfull = False
-                print(f"- {port_name} failed")
-            elif value.natural16 is None:
-                if not is_successfull:
-                    print(f"Violation of: {PortRegistersTypeChecker.__doc__}\nDetails:")
-                    is_successfull = False
-                print(f"- {port_name} should have natural16 type, but it is {value}.")
+        if len(bad_ports) > 0:
+            print(f"Violation of: {PortRegistersTypeChecker.__doc__}\nDetails:")
+            for port_name, response in bad_ports.items():
+                if response is None:
+                    print(f"- {port_name} retrive failed")
+                elif response.value.natural16 is None:
+                    print(f"- {port_name} should have natural16 type, but it is {response}.")
+                elif response._mutable is False or response.persistent is False:
+                    print(f"- {port_name} should be mutable and persistent, but it is {response}.")
 
     @staticmethod
     def get_port_type_by_register_name(register_name):
