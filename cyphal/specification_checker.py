@@ -12,6 +12,7 @@ import pycyphal.application
 import uavcan.node
 import uavcan.node.Heartbeat_1_0
 import uavcan.node.GetInfo_1_0
+import uavcan.node.port.List_1_0
 import uavcan.register
 import uavcan.register.List_1_0
 
@@ -80,7 +81,7 @@ class HearbeatFrequencyChecker:
         sub.close()
         periods = self.calculate_time_differences(self._heartbeat_timestamps)
         if periods is None or periods[0] < 0.9 or periods[1] > 3:
-            eror_msg = f"Violation of: {HearbeatFrequencyChecker.__doc__} \n" + \
+            eror_msg = f"Violation of: {self.__doc__} \n" + \
                     f"Details: got {len(self._heartbeat_timestamps)} heartbeats within 9 sec" + \
                     f" (min period = {periods[0]}, max period = {periods[1]})."
             print(eror_msg)
@@ -142,7 +143,7 @@ class PortRegistersTypeChecker:
                 bad_ports[register_name] = access_response[0]
 
         if len(bad_ports) > 0:
-            print(f"Violation of: {PortRegistersTypeChecker.__doc__}\nDetails:")
+            print(f"Violation of: {self.__doc__}\nDetails:")
             for port_name, response in bad_ports.items():
                 if response is None:
                     print(f"- {port_name} retrive failed")
@@ -194,6 +195,42 @@ class DefaultRegistersExistanceChecker:
 
         return is_test_successfull
 
+class PortListServersChecker:
+    """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/node/port/7510.List.1.0.dsdl"""
+    def __init__(self, cyphal_node, dest_node_id):
+        self._node = cyphal_node
+        self._dest_node_id = dest_node_id
+        self._port_list_msg = None
+
+    async def run(self):
+        sub = self._node.make_subscriber(uavcan.node.port.List_1_0)
+        sub.receive_in_background(self._port_list_callback)
+
+        for _ in range(11):
+            await asyncio.sleep(1)
+            if self._port_list_msg is not None:
+                break
+
+        if self._port_list_msg is None:
+            print("uavcan.port.List was not published")
+        elif not self.is_enough_servers(self._port_list_msg.servers.mask):
+            print(f"Violation of: {self.__doc__}")
+            print("Details: uavcan.port.List doesn't support required services:")
+            print(f"- 384: {self._port_list_msg.servers.mask[384]}")
+            print(f"- 385: {self._port_list_msg.servers.mask[385]}")
+            print(f"- 430: {self._port_list_msg.servers.mask[430]}")
+            print(f"- 435: {self._port_list_msg.servers.mask[435]}")
+
+    async def _port_list_callback(self, msg, _):
+        self._port_list_msg = msg
+
+    @staticmethod
+    def is_enough_servers(mask):
+        if mask[384] is True and mask[385] is True and mask[430] is True and mask[435] is True:
+            return True
+
+        return False
+
 
 async def main(dest_node_id):
     software_version = uavcan.node.Version_1_0(major=1, minor=0)
@@ -210,6 +247,7 @@ async def main(dest_node_id):
     await RegistersNameChecker(cyphal_node, dest_node_id).run()
     await PortRegistersTypeChecker(cyphal_node, dest_node_id).run()
     await DefaultRegistersExistanceChecker(cyphal_node, dest_node_id).run()
+    await PortListServersChecker(cyphal_node, dest_node_id).run()
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
