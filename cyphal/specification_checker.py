@@ -212,4 +212,8 @@ async def main(dest_node_id):
     await DefaultRegistersExistanceChecker(cyphal_node, dest_node_id).run()
 
 if __name__ == "__main__":
-    asyncio.run(main(dest_node_id=50))
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description='Cyphal specification checker')
+    parser.add_argument("--node", default='50', type=int, help="Destination node identifier")
+    args = parser.parse_args()
+    asyncio.run(main(dest_node_id=args.node))
