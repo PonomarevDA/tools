@@ -35,14 +35,14 @@ def do_publish():
     node.broadcast(msg)
 
 
-message = ''
+MESSAGE = ''
 node.periodic(1 / 15, do_publish)
 MOVE_COUNTER = 0
 
 
 def handle_node_info(msg):
-    global message
-    message = (f"Uptime: {datetime.timedelta(seconds=int(str(dict(msg.transfer.payload._fields)['uptime_sec'])))}, " +
+    global MESSAGE
+    MESSAGE = (f"Uptime: {datetime.timedelta(seconds=int(str(dict(msg.transfer.payload._fields)['uptime_sec'])))}, " +
                f"Health: {dict(msg.transfer.payload._fields)['health']}")
 
 
@@ -55,22 +55,22 @@ def switch_data():
     :param i: data of message that affects on do_publish function
     :return:
     """
+    event_time = datetime.timedelta(seconds=int(time.time() - start_time))
     try:
-        global i, MOVE_COUNTER, message
+        global i, MOVE_COUNTER, MESSAGE
         i = [7000, 0, 0, 0, 0, 0, 0, 0]
         node.spin(timeout=float(args.timeout))
         i = [100, 0, 0, 0, 0, 0, 0, 0]
         node.spin(timeout=float(args.timeout))
         MOVE_COUNTER += 2
         file = open('result.txt', 'w')
-        print(f'Movements: {MOVE_COUNTER}, ', message, file=file)
+        print(f'Movements: {MOVE_COUNTER}, {MESSAGE}', file=file)
     except dronecan.driver.common.TxQueueFullError:
-        print('Exception dronecan.driver.common.TxQueueFullError catched')
+        print('Exception dronecan.driver.common.TxQueueFullError catched', event_time)
     except dronecan.transport.TransferError:
-        print('Exception dronecan.transport.TransferError catched')
+        print('Exception dronecan.transport.TransferError catched', event_time)
     except Exception as err:
-        print(err)
-
+        print(err, event_time)
 
 
 if args.duration == '0':  # If duration is '0' then script never ends
