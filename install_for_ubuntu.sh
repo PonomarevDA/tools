@@ -1,5 +1,7 @@
 #!/bin/bash
 
+REPO_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 is_root="$(whoami)"
 if [[ $is_root =~ "root" ]]; then
     SUDO=""
@@ -16,7 +18,7 @@ fi
 $SUDO apt-get install $FORCE_APT_INSTALL gcc-arm-none-eabi stlink-tools
 
 # CAN
-$SUDO apt-get install $FORCE_APT_INSTALL can-utils
+$REPO_DIR/can/install.sh
 
 # Cyphal
 pip install -U nunavut
