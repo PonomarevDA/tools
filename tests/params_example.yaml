@@ -36,5 +36,5 @@ params:
   cmd_ttl_ms : 500
   system.log_level : 0
   system.can_bus_check_level : 0
-  uavcan.node.name : mini_v2.0
+  uavcan.node.description : mini_v2.0
 

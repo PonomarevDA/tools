@@ -178,7 +178,7 @@ class DefaultRegistersExistanceChecker:
 
         register_names = [
             "uavcan.node.id",
-            "uavcan.node.name",
+            "uavcan.node.description",
         ]
         access_request = uavcan.register.Access_1_0.Request()
         access_client = self._node.make_client(uavcan.register.Access_1_0, self._dest_node_id)
@@ -226,7 +226,7 @@ class PortListServersChecker:
 
     @staticmethod
     def is_enough_servers(mask):
-        if mask[384] is True and mask[385] is True and mask[430] is True and mask[435] is True:
+        if mask[384] == True and mask[385] == True and mask[430] == True and mask[435] == True:
             return True
 
         return False
