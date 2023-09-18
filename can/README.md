@@ -8,6 +8,10 @@
 
 **Create CAN interface based on serial CAN device**
 
+Supported sniffers:
+- [RaccoonLab CAN-sniffer and STM32 programmer](https://docs.raccoonlab.co/guide/programmer_sniffer/),
+- [Zubax Babel-Babel](https://shop.zubax.com/products/zubax-babel-babel-all-in-one-debugger-for-robotics-drone-development).
+
 ```bash
 ./can/create_slcan_from_serial.sh --help
 ```

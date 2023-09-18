@@ -1,8 +1,8 @@
 # Cyphal/DroneCAN nodes tools
 
-`tools` is a collection of bash and python scripts for Cyphal and DroneCAN applications.
+`tools` is a collection of bash and python scripts for testing and configuration of Cyphal/CAN and DroneCAN nodes.
 
-It is intended for use with [RaccoonLab CAN-sniffer and STM32 programmer](https://docs.raccoonlab.co/guide/programmer_sniffer/) with Ununtu 20.04 or newer.
+It is expected to use Ununtu 20.04 or newer.
 
 ## Install dependencies
 
