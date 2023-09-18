@@ -20,7 +20,7 @@ import uavcan.register.List_1_0
 def np_array_to_string(np_array):
     return "".join([chr(item) for item in np_array])
 
-async def request_regiter_names(cyphal_node, dest_node_id, max_register_amount=256):
+async def retrive_all_regiter_names(cyphal_node, dest_node_id, max_register_amount=256):
     register_names = []
     list_request = uavcan.register.List_1_0.Request()
     list_client = cyphal_node.make_client(uavcan.register.List_1_0, dest_node_id)
@@ -116,7 +116,7 @@ class RegistersNameChecker(BaseChecker):
 
     async def _run(self) -> str:
         details = ""
-        register_names = await request_regiter_names(self._node, self._dest_node_id)
+        register_names = await retrive_all_regiter_names(self._node, self._dest_node_id)
 
         for register_name in register_names:
             if not self.check_register_name(register_name):
@@ -131,56 +131,64 @@ class RegistersNameChecker(BaseChecker):
         pattern = r'^[a-z][a-z0-9._]*(\.[a-z0-9._]+)+$'
         return re.match(pattern, register_name) is not None
 
-class PortRegistersTypeChecker:
+class PortRegistersTypeChecker(BaseChecker):
     """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/register/384.Access.1.0.dsdl"""
     def __init__(self, cyphal_node, dest_node_id):
         self._node = cyphal_node
         self._dest_node_id = dest_node_id
 
-    async def run(self):
-        register_names = await request_regiter_names(self._node, self._dest_node_id)
+    async def _run(self):
+        details = ""
+        all_register_names = await retrive_all_regiter_names(self._node, self._dest_node_id)
 
-        bad_ports = {}
         access_request = uavcan.register.Access_1_0.Request()
         access_client = self._node.make_client(uavcan.register.Access_1_0, self._dest_node_id)
-        for register_name in register_names:
-            if self.get_port_type_by_register_name(register_name) is None:
+        for register_name in all_register_names:
+            port_type, port_reg_type = self.get_port_type_by_register_name(register_name)
+            if port_type is None or port_reg_type is None:
                 continue
 
             access_request.name.name = register_name
             access_response = await access_client.call(access_request)
 
             if access_response is None:
-                bad_ports[register_name] = None
-            elif access_response[0].value.natural16 is None:
-                bad_ports[register_name] = access_response[0]
-            elif access_response[0]._mutable is False or access_response[0].persistent is False:
-                bad_ports[register_name] = access_response[0]
+                details += f"- {register_name} retrive failed\n"
+                continue
 
-        if len(bad_ports) > 0:
-            print(f"Violation of: {self.__doc__}\nDetails:")
-            for port_name, response in bad_ports.items():
-                if response is None:
-                    print(f"- {port_name} retrive failed")
-                elif response.value.natural16 is None:
-                    print(f"- {port_name} should have natural16 type, but it is {response}.")
-                elif response._mutable is False or response.persistent is False:
-                    print(f"- {port_name} should be mutable and persistent, but it is {response}.")
+            access_response = access_response[0]
+            if port_reg_type == "id":
+                if access_response.value.natural16 is None:
+                    details += f"- {register_name} should have natural16 type, but it is not.\n"
+                elif access_response._mutable is False or access_response.persistent is False:
+                    details += f"- {register_name} should be mutable and persistent, but it is {access_response}.\n"
+            elif port_reg_type == "type":
+                if access_response.value.string is None:
+                    details += f"- {register_name} should have string type, but it is not.\n"
+                elif access_response._mutable is True or access_response.persistent is False:
+                    details += f"- {register_name} should be mutable and persistent, but it is {access_response}.\n"
+
+        return details
 
     @staticmethod
-    def get_port_type_by_register_name(register_name):
+    def get_port_type_by_register_name(reg):
         port_type = None
+        port_reg_type = None
 
-        if register_name.startswith("uavcan.pub") and register_name.endswith(".id"):
+        if reg.startswith("uavcan.pub"):
             port_type = 'pub'
-        elif register_name.startswith("uavcan.sub") and register_name.endswith(".id"):
+        elif reg.startswith("uavcan.sub"):
             port_type = 'sub'
-        elif register_name.startswith("uavcan.cln") and register_name.endswith(".id"):
+        elif reg.startswith("uavcan.cln"):
             port_type = 'cln'
-        elif register_name.startswith("uavcan.srv") and register_name.endswith(".id"):
+        elif reg.startswith("uavcan.srv"):
             port_type = 'srv'
 
-        return port_type
+        if reg.endswith(".id"):
+            port_reg_type = "id"
+        elif reg.endswith(".type"):
+            port_reg_type = "type"
+
+        return port_type, port_reg_type
 
 class DefaultRegistersExistanceChecker:
     """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/register/384.Access.1.0.dsdl"""
@@ -260,7 +268,7 @@ async def main(dest_node_id):
     await NodeNameChecker(cyphal_node, dest_node_id).run()
     await HearbeatFrequencyChecker(cyphal_node, dest_node_id).run()
     await RegistersNameChecker(cyphal_node, dest_node_id).test()
-    await PortRegistersTypeChecker(cyphal_node, dest_node_id).run()
+    await PortRegistersTypeChecker(cyphal_node, dest_node_id).test()
     await DefaultRegistersExistanceChecker(cyphal_node, dest_node_id).run()
     await PortListServersChecker(cyphal_node, dest_node_id).run()
 
