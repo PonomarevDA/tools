@@ -39,6 +39,16 @@ async def request_regiter_names(cyphal_node, dest_node_id, max_register_amount=2
 
     return register_names
 
+class BaseChecker:
+    def __init__(self) -> None:
+        pass
+
+    async def test(self):
+        details = await self._run()
+        if len(details) != 0:
+            print(f"Violation of {self.__doc__}")
+            print(details)
+
 class NodeNameChecker:
     def __init__(self, cyphal_node, dest_node_id):
         self._node = cyphal_node
@@ -98,18 +108,23 @@ class HearbeatFrequencyChecker:
         periods = [timestamps[i] - timestamps[i - 1] for i in range(1, len(timestamps))]
         return min(periods), max(periods)
 
-class RegistersNameChecker:
+class RegistersNameChecker(BaseChecker):
     """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/register/384.Access.1.0.dsdl"""
     def __init__(self, cyphal_node, dest_node_id):
         self._node = cyphal_node
         self._dest_node_id = dest_node_id
 
-    async def run(self):
+    async def _run(self) -> str:
+        details = ""
         register_names = await request_regiter_names(self._node, self._dest_node_id)
 
         for register_name in register_names:
             if not self.check_register_name(register_name):
-                print(f"{register_name} has wrong name pattern")
+                if len(details) != 0:
+                    details += "\n"
+                details += f"- `{register_name}` register has wrong name pattern"
+
+        return details
 
     @staticmethod
     def check_register_name(register_name):
@@ -244,7 +259,7 @@ async def main(dest_node_id):
 
     await NodeNameChecker(cyphal_node, dest_node_id).run()
     await HearbeatFrequencyChecker(cyphal_node, dest_node_id).run()
-    await RegistersNameChecker(cyphal_node, dest_node_id).run()
+    await RegistersNameChecker(cyphal_node, dest_node_id).test()
     await PortRegistersTypeChecker(cyphal_node, dest_node_id).run()
     await DefaultRegistersExistanceChecker(cyphal_node, dest_node_id).run()
     await PortListServersChecker(cyphal_node, dest_node_id).run()
