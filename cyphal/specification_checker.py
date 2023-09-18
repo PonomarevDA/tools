@@ -3,6 +3,8 @@ import asyncio
 import sys
 import time
 import pathlib
+import random
+import string
 import re
 
 # pylint: disable-next=wrong-import-position
@@ -39,6 +41,7 @@ async def retrive_all_regiter_names(cyphal_node, dest_node_id, max_register_amou
 
     return register_names
 
+
 class BaseChecker:
     def __init__(self) -> None:
         pass
@@ -48,6 +51,7 @@ class BaseChecker:
         if len(details) != 0:
             print(f"Violation of {self.__doc__}")
             print(details)
+
 
 class NodeNameChecker:
     def __init__(self, cyphal_node, dest_node_id):
@@ -108,6 +112,7 @@ class HearbeatFrequencyChecker:
         periods = [timestamps[i] - timestamps[i - 1] for i in range(1, len(timestamps))]
         return min(periods), max(periods)
 
+
 class RegistersNameChecker(BaseChecker):
     """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/register/384.Access.1.0.dsdl"""
     def __init__(self, cyphal_node, dest_node_id):
@@ -130,6 +135,7 @@ class RegistersNameChecker(BaseChecker):
     def check_register_name(register_name):
         pattern = r'^[a-z][a-z0-9._]*(\.[a-z0-9._]+)+$'
         return re.match(pattern, register_name) is not None
+
 
 class PortRegistersTypeChecker(BaseChecker):
     """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/register/384.Access.1.0.dsdl"""
@@ -189,6 +195,49 @@ class PortRegistersTypeChecker(BaseChecker):
             port_reg_type = "type"
 
         return port_type, port_reg_type
+
+class PersistentMemoryChecker(BaseChecker):
+    """Persistent memory check: 1. set random, 2. save, 3. reboot, 4. get"""
+    def __init__(self, cyphal_node, dest_node_id):
+        self._node = cyphal_node
+        self._dest_node_id = dest_node_id
+        self._register_name = "uavcan.node.description"
+        self._test_value = ''.join(random.choices(string.ascii_lowercase, k=10))
+
+        self._access_client = self._node.make_client(uavcan.register.Access_1_0, self._dest_node_id)
+        self._cmd_client = self._node.make_client(uavcan.node.ExecuteCommand_1_1, self._dest_node_id)
+
+    async def _run(self):
+        details = ""
+
+        set_request = uavcan.register.Access_1_0.Request()
+        set_request.name.name = self._register_name
+        set_request.value.string = uavcan.primitive.String_1_0(self._test_value)
+        access_response = await self._access_client.call(set_request)
+        if access_response is None:
+            return "1/4. Access retrive failed"
+        value = np_array_to_string(access_response[0].value.string.value)
+        if value != self._test_value:
+            return f"1/4. Accees expected {self._test_value}, got {value}"
+
+        save_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65530)
+        cmd_response = await self._cmd_client.call(save_request)
+        if cmd_response is None:
+            return f"2/4. ExecuteCommand retrive failed"
+
+        reboot_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65535)
+        await self._cmd_client.call(reboot_request)
+
+        get_request = uavcan.register.Access_1_0.Request()
+        get_request.name.name = self._register_name
+        access_response = await self._access_client.call(set_request)
+        if access_response is None:
+            return "4/4. Access retrive failed"
+        value = np_array_to_string(access_response[0].value.string.value)
+        if value != self._test_value:
+            return f"4/4. Accees expected {self._test_value}, got {value}"
+
+        return details
 
 class DefaultRegistersExistanceChecker:
     """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/register/384.Access.1.0.dsdl"""
@@ -271,6 +320,7 @@ async def main(dest_node_id):
     await PortRegistersTypeChecker(cyphal_node, dest_node_id).test()
     await DefaultRegistersExistanceChecker(cyphal_node, dest_node_id).run()
     await PortListServersChecker(cyphal_node, dest_node_id).run()
+    await PersistentMemoryChecker(cyphal_node, dest_node_id).test()
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
