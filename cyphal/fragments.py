@@ -11,8 +11,15 @@ class CyphalFragmentSub:
         self._sp_sub.receive_in_background(self._sub_cb)
         self._rx_counter = 0
         self._verbose = verbose
+        self._external_callbacks = []
+
+    async def add_callback(self, external_callback):
+        self._external_callbacks.append(external_callback)
 
     async def _sub_cb(self, msg, _):
+        for external_callback in self._external_callbacks:
+            external_callback(msg)
+
         if self._verbose:
             await self._print(msg)
 

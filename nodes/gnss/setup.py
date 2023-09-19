@@ -36,7 +36,7 @@ def download_firmware_and_upload_to_target(protocol):
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
-    parser = ArgumentParser(description='Node firmware uploader')
+    parser = ArgumentParser(description='Node setup: firmware uploader and configurator')
     parser.add_argument("--protocol", type=str, help="[cyphal, dronecan]")
     args = parser.parse_args()
     download_firmware_and_upload_to_target(args.protocol)
