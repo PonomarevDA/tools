@@ -3,6 +3,7 @@ import asyncio
 import sys
 import pathlib
 import subprocess
+import logging
 import numpy
 import socket
 
@@ -30,26 +31,31 @@ class UbloxCenterInterface:
         self.client = None
         self.addr = None
         self.buffer = []
-        print("Press Receiver -> Connection -> Network Connection -> `tcp://127.0.0.1:2001` ...")
+        logging.info("Press Receiver -> Connection -> Network Connection -> `tcp://127.0.0.1:2001` ...")
         while True:
             self.client, self.addr = self.sock.accept()
             break
 
         self.client.settimeout(0.1)
-        print("Connection with u-center established.")
+        logging.debug("Connection with u-center established.")
 
     def send_to_ucenter(self, msg : numpy.ndarray):
         try:
             self.client.send(msg)
+            logging.debug(f"Send to u-center: {msg}")
         except BrokenPipeError:
-            print("BrokenPipeError")
+            logging.error("BrokenPipeError")
             sys.exit()
 
     def read_from_ucenter(self):
+        msg_from_ucenter = None
         try:
-            return self.client.recv(1024)
+            msg_from_ucenter = self.client.recv(1024)
+            logging.debug(f"Receive from u-center: {msg_from_ucenter}")
         except TimeoutError:
-            return None
+            pass
+
+        return msg_from_ucenter
 
 
 class UbloxCenter:
@@ -67,16 +73,16 @@ class UbloxCenter:
         print("")
 
         if self._fragment_sub_port_id == 65535 or self._fragment_pub_port_id == 65535:
-            print("Error: required registers are not configured!")
+            logging.error("Required registers are not configured!")
             exit(-1)
 
-    def run(self, verbose=False):
+    def run(self):
         try:
-            asyncio.run(self._main(verbose))
+            asyncio.run(self._main())
         except KeyboardInterrupt:
             pass
 
-    async def _main(self, verbose):
+    async def _main(self):
         node_info = GetInfo_1_0.Response(
             software_version=uavcan.node.Version_1_0(major=1, minor=0),
             name="ubx"
@@ -87,8 +93,8 @@ class UbloxCenter:
     
         self._node.start()
 
-        self.fragment_pub = CyphalFragmentPub(self._node, self._fragment_pub_port_id, verbose)
-        self.fragment_sub = CyphalFragmentSub(self._node, self._fragment_sub_port_id, verbose)
+        self.fragment_pub = CyphalFragmentPub(self._node, self._fragment_pub_port_id)
+        self.fragment_sub = CyphalFragmentSub(self._node, self._fragment_sub_port_id)
         
         await self.fragment_sub.add_callback(lambda msg : self.ublox_center.send_to_ucenter(msg.data))
         
@@ -107,5 +113,8 @@ if __name__ == "__main__":
     parser = ArgumentParser(description='U-center over Cyphal/CAN')
     parser.add_argument("--verbose", default=False, action='store_true', help="Verbose mode")
     args = parser.parse_args()
+    logging.getLogger("pycyphal").setLevel(logging.CRITICAL)
+    logging.getLogger("asyncio").setLevel(logging.CRITICAL)
+    logging.getLogger().setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
-    UbloxCenter(node_id=50).run(verbose=args.verbose)
+    UbloxCenter(node_id=50).run()
