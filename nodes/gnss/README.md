@@ -15,7 +15,7 @@
     ![](https://github.com/PonomarevDA/tools/blob/docs/assets/gnss/ucenter/address.png?raw=true)
 
 
-## Setup
+## Test
 
 The following script automatically:
 
@@ -24,7 +24,7 @@ The following script automatically:
 3. Optionally, sends report to the printer (tested with XPRINTER XP-365B)
 
 ```
-./nodes/gnss/setup.sh --protocol <>
+./nodes/gnss/test.sh --protocol <>
 ```
 
 For details type `--help` option.

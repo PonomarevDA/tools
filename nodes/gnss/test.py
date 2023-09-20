@@ -11,6 +11,7 @@ sys.path.insert(0, str(repo_dir / "cyphal"))
 sys.path.insert(0, str(repo_dir / "dronecan"))
 
 from gnss import test_dronecan_gps_mag_baro
+from specification_checker import test_cyphal_standard
 
 RELEASE_URL = "https://github.com/RaccoonlabDev/docs/releases"
 URLS = {
@@ -64,10 +65,10 @@ def print_report(filename, printer_name="Xerox_Xprinter_XP-365B"):
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
-    parser = ArgumentParser(description='Node setup: '
-                                        '1. download latest firmware and upload it to the target '
-                                        '2. provide tests '
-                                        '3. print result')
+    parser = ArgumentParser(description='Node tester: '
+                                        '1. Download latest firmware and upload it to the target '
+                                        '2. Provide tests '
+                                        '3. Print result')
     parser.add_argument("--protocol", type=str, required=True, help="[cyphal, dronecan]")
     parser.add_argument("--port", default='slcan0', type=str, help="[slcan0, ...]")
     parser.add_argument("--printer", default=False, action='store_true', help="Print report")
@@ -75,10 +76,12 @@ if __name__ == "__main__":
 
     REPORT_PATH = "report.txt"
 
-    download_firmware_and_upload_to_target(args.protocol)
+    # download_firmware_and_upload_to_target(args.protocol)
 
     if args.protocol == 'dronecan':
         test_dronecan_gps_mag_baro(args.port, REPORT_PATH)
+    elif args.protocol == 'cyphal':
+        test_cyphal_standard(50)
 
     if args.printer:
         print_report(filename=REPORT_PATH)

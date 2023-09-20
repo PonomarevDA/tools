@@ -288,10 +288,10 @@ class PortListServersChecker:
         elif not self.is_enough_servers(self._port_list_msg.servers.mask):
             print(f"Violation of: {self.__doc__}")
             print("Details: uavcan.port.List doesn't support required services:")
-            print(f"- 384: {self._port_list_msg.servers.mask[384]}")
-            print(f"- 385: {self._port_list_msg.servers.mask[385]}")
-            print(f"- 430: {self._port_list_msg.servers.mask[430]}")
-            print(f"- 435: {self._port_list_msg.servers.mask[435]}")
+            print(f"- 384 (register.Access): {self._port_list_msg.servers.mask[384]}")
+            print(f"- 385 (register.List): {self._port_list_msg.servers.mask[385]}")
+            print(f"- 430 (GetInfo): {self._port_list_msg.servers.mask[430]}")
+            print(f"- 435 (ExecuteCommand): {self._port_list_msg.servers.mask[435]}")
 
     async def _port_list_callback(self, msg, _):
         self._port_list_msg = msg
@@ -322,9 +322,13 @@ async def main(dest_node_id):
     await PortListServersChecker(cyphal_node, dest_node_id).run()
     await PersistentMemoryChecker(cyphal_node, dest_node_id).test()
 
+def test_cyphal_standard(dest_node_id):
+    asyncio.run(main(dest_node_id))
+
+
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser(description='Cyphal specification checker')
     parser.add_argument("--node", default='50', type=int, help="Destination node identifier")
     args = parser.parse_args()
-    asyncio.run(main(dest_node_id=args.node))
+    test_cyphal_standard(dest_node_id=args.node)
