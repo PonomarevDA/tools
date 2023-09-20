@@ -15,7 +15,7 @@ from specification_checker import test_cyphal_standard
 
 RELEASE_URL = "https://github.com/RaccoonlabDev/docs/releases"
 URLS = {
-    "gnss_v3_cyphal" : f"{RELEASE_URL}/download/v1.5.2/gnss_v3_cyphal_v1.5.2_c900ac3.bin",
+    "gnss_v3_cyphal" : f"{RELEASE_URL}/download/v1.5.4/gnss_v3_cyphal_v1.5.4_cb62980.bin",
     "gnss_v2.5_dronecan" : f"{RELEASE_URL}/download/v0.12.2/gnss_v2.5_dronecan_v0.12.1_e0ba916.bin"
 }
 BINARY_FOLDER = 'binaries'
@@ -72,11 +72,13 @@ if __name__ == "__main__":
     parser.add_argument("--protocol", type=str, required=True, help="[cyphal, dronecan]")
     parser.add_argument("--port", default='slcan0', type=str, help="[slcan0, ...]")
     parser.add_argument("--printer", default=False, action='store_true', help="Print report")
+    parser.add_argument("--onlytest", default=False, action='store_true', help="Print report")
     args = parser.parse_args()
 
     REPORT_PATH = "report.txt"
 
-    # download_firmware_and_upload_to_target(args.protocol)
+    if not args.onlytest:
+        download_firmware_and_upload_to_target(args.protocol)
 
     if args.protocol == 'dronecan':
         test_dronecan_gps_mag_baro(args.port, REPORT_PATH)
