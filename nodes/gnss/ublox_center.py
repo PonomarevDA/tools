@@ -80,8 +80,14 @@ class CyphalGnss:
         fragment_pub_port_id = await retrive_register_value(node, gnss_id, CyphalGnss.UBX_RX_REG)
         fragment_sub_port_id = await retrive_register_value(node, gnss_id, CyphalGnss.UBX_TX_REG)
 
-        if fragment_pub_port_id == 65535 or fragment_sub_port_id == 65535:
-            logging.error("Required registers are not configured!")
+        config_required = False
+        if fragment_pub_port_id == 65535:
+            logging.error("GNSS node: %s is not configured!", CyphalGnss.UBX_RX_REG)
+            config_required = True
+        if fragment_sub_port_id == 65535:
+            logging.error("GNSS node: %s is not configured.", CyphalGnss.UBX_TX_REG)
+            config_required = True
+        if config_required:
             sys.exit(-1)
 
         return CyphalGnss(node, fragment_pub_port_id, fragment_sub_port_id)

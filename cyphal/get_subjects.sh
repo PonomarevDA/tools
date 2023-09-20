@@ -15,8 +15,8 @@ for register in "${registers_array[@]}"; do
     fi
 done
 
-echo -n "Subjects: "
+echo "Publishers: "
 for subject in "${subjects[@]}"; do
-    echo -n "$subject "
+    echo "- $subject "
 done
 echo ""
