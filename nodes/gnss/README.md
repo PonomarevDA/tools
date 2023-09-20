@@ -1,6 +1,6 @@
 # GPS_MAG_BARO
 
-## U-center
+## U-center with Cyphal GNSS
 
 1. Install wine for ubuntu.
 2. Download [u-center](https://www.u-blox.com/en/product/u-center) (tested with u-center 23.08)
@@ -14,6 +14,17 @@
 
     ![](https://github.com/PonomarevDA/tools/blob/docs/assets/gnss/ucenter/address.png?raw=true)
 
+
 ## Setup
 
-> in process
+The following script automatically:
+
+1. Downloads the latest required firmware and upload it to the target
+2. Retrive the board data (software version, hardware, UID) and provides auto test of GNSS, Magnetometer and Barometer
+3. Optionally, sends report to the printer (tested with XPRINTER XP-365B)
+
+```
+./nodes/gnss/setup.sh --protocol <>
+```
+
+For details type `--help` option.
