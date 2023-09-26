@@ -2,7 +2,6 @@
 # Brief: Get a sniffer symlink
 # Usage: source get_sniffer_symlinks.sh
 # Output environment variables:
-# - DEV_PATH
 # - DEV_PATH_SYMLINK
 
 SCRIPT_NAME=$(basename $BASH_SOURCE)
@@ -14,33 +13,23 @@ if [ "${BASH_SOURCE[0]}" -ef "$0" ]; then
     exit 1
 fi
 
+KNOWN_SNIFFERS=(
+    "ID_MODEL_ID=374b|ID_VENDOR_ID=0483" # RaccoonLab programmer-sniffer
+    "ID_MODEL_ID=60c7|ID_VENDOR_ID=1d50" # Zubax Babel-Babel
+)
+
 EXPECTED_DEV_PATH="/dev/ttyACM*"
 EXPECTED_SYMLINK_PATH="/dev/serial/by-id/"
-
-# Known sniffers:
-RACCOON_LAB_VID=0483
-RACCOON_LAB_PID=374b
-ZUBAX_BABEL_VID=1d50
-ZUBAX_BABEL_PID=60c7
-
-
 for dev_path in $EXPECTED_DEV_PATH; do
     [ -e "$dev_path" ] || continue
-    is_rl_sniffer=$(udevadm info $dev_path | grep -E "(ID_MODEL_ID=$RACCOON_LAB_PID|ID_VENDOR_ID=$RACCOON_LAB_VID)" -wc || true)
-    if [ "$is_rl_sniffer" == 2 ]; then
-        DEV_PATH=$dev_path
-        DEV_PATH_SYMLINK=$(find -L $EXPECTED_SYMLINK_PATH -samefile $DEV_PATH)
-        echo "RaccoonLab sniffer has been detected."
-        break
-    fi
-
-    is_zubax_sniffer=$(udevadm info $dev_path | grep -E "(ID_MODEL_ID=$ZUBAX_BABEL_PID|ID_VENDOR_ID=$ZUBAX_BABEL_VID)" -wc || true)
-    if [ "$is_zubax_sniffer" == 2 ]; then
-        DEV_PATH=$dev_path
-        DEV_PATH_SYMLINK=$(find -L $EXPECTED_SYMLINK_PATH -samefile $DEV_PATH)
-        echo "$SCRIPT_NAME: Zubax Babel-Babel has been detected."
-        break
-    fi
+    for sniffer in ${KNOWN_SNIFFERS[@]}; do
+        is_sniffer=$(udevadm info $dev_path | grep -E "($sniffer)" -wc || true)
+        if [ "$is_sniffer" == 2 ]; then
+            DEV_PATH_SYMLINK=$(find -L $EXPECTED_SYMLINK_PATH -samefile $dev_path)
+            echo "Sniffer found: $DEV_PATH_SYMLINK"
+            break
+        fi
+    done
 done
 
 if [ -z "$DEV_PATH_SYMLINK" ]; then
