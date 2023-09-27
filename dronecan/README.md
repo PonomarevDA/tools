@@ -5,7 +5,7 @@ Before running the scripts you should create CAN interface.
 If you have [RaccoonLab CAN-sniffer and STM32 programmer](https://docs.raccoonlab.co/guide/programmer_sniffer/), you should type:
 
 ```bash
-./can/create_slcan_from_serial.sh
+./can/create_slcan.sh
 ```
 
 ## Paramters configurator

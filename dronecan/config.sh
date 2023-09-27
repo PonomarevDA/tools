@@ -21,5 +21,5 @@ if [ ! "${BASH_SOURCE[0]}" -ef "$0" ]; then
 fi
 
 $TOOLS_DIR/stm32/flash.sh $1
-$TOOLS_DIR/can/create_slcan_from_serial.sh
+$TOOLS_DIR/can/create_slcan.sh
 $TOOLS_DIR/dronecan/param_setter.py --file-path $2 --write

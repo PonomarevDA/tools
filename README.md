@@ -28,7 +28,7 @@ source cyphal/init.sh --help
 Create SLCAN:
 
 ```bash
-./can/create_slcan_from_serial.sh --help
+./can/create_slcan.sh --help
 ```
 
 ## STM32 usage
