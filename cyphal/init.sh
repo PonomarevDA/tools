@@ -27,7 +27,7 @@ DEFAULT_REG_DSDL_PATH="$DEFAULT_PUBLIC_DSDL_PATH/reg"
 # 1. Create SLCAN based on CAN sniffer
 res=$(ifconfig | grep slcan0)
 if [ -z "$res" ]; then
-    $REPOSITORY_PATH/can/create_slcan_from_serial.sh
+    $REPOSITORY_PATH/can/create_slcan.sh
 fi
 
 # 2. Configure environment variables if they are not already configured
