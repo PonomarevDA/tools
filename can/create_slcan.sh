@@ -1,4 +1,9 @@
 #!/bin/bash
+# https://github.com/PonomarevDA/tools/blob/main/can/create_slcan.sh
+# This software is distributed under the terms of the MIT License.
+# Copyright (c) 2023 Dmitry Ponomarev.
+# Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
+
 SCRIPT_NAME=$(basename $BASH_SOURCE)
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
