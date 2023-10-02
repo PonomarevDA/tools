@@ -14,6 +14,7 @@ function print_help() {
 
 function create_slcan() {
     sudo slcand -o -c -f -s8 -t hw -S 1000000 $dev_path $INTERFACE_NAME
+    sleep 1 # without sleep next commands may fail with 'Cannot find device "slcan0"'
     sudo ip link set up $INTERFACE_NAME
     sudo tc qdisc add dev $INTERFACE_NAME root handle 1: pfifo_head_drop limit 1000
 }

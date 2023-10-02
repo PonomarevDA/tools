@@ -85,6 +85,7 @@ function find_sniffer() {
 
 function create_slcan() {
     sudo slcand -o -c -f -s8 -t hw -S 1000000 $DEV_PATH $INTERFACE
+    sleep 1 # without sleep next commands may fail with 'Cannot find device "slcan0"'
     sudo ip link set up $INTERFACE
     sudo tc qdisc add dev $INTERFACE root handle 1: pfifo_head_drop limit 1000
 }
