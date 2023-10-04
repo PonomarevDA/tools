@@ -48,9 +48,12 @@ class BaseChecker:
 
     async def test(self):
         details = await self._run()
+        print(f"{self.__class__.__name__}: ", end="")
         if len(details) != 0:
-            print(f"Violation of {self.__doc__}")
+            print(f"violation of {self.__doc__}")
             print(details)
+        else:
+            print(f"passed")
 
 
 class NodeNameChecker:

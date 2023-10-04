@@ -37,9 +37,9 @@ for attempt in {1..25}; do
     fi
 
     # stm32f103 has a wrong flash size. It says 64 KBytes, but it is actually 128 KBytes!
-    if [[ ! -z $(echo "$output" | grep "F1xx Medium-density") ]]; then # for the old versions of st-link
-        EXPLICIT_FLASH_SIZE="--flash=0x00020000"
-    elif [[ ! -z $(echo "$output" | grep "STM32F1xx_MD") ]]; then # for the newer versions of st-link
+    # Medium-density for old versions of st-link, MD for the newer versions of st-link
+    is_stm32f103=$(echo "$output" | grep "F1xx Medium-density\|STM32F1xx_MD")
+    if [ ! -z "$is_stm32f103" ]; then
         EXPLICIT_FLASH_SIZE="--flash=0x00020000"
     fi
 
