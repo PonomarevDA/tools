@@ -23,6 +23,7 @@ cubeide_build() {
 # 1. Init params by default
 SCRIPT_NAME=$(basename $BASH_SOURCE)
 RED='\033[0;31m'
+YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
 CUBE_IDE_PATH=/opt/st/stm32cubeide_1.5.1/stm32cubeide
@@ -60,16 +61,15 @@ fi
 
 # 4. Check args
 if [ ! -f "$CUBE_IDE_PATH" ]; then
-    printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: CUBE_IDE_PATH=$CUBE_IDE_PATH does not exist!$NC\n"
-    exit 1
+  printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: CUBE_IDE_PATH=$CUBE_IDE_PATH does not exist!$NC\n"
+  exit 1
 fi
 if [ ! -d "$WS_PATH" ]; then
-    printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: WS_PATH=$WS_PATH does not exist!$NC\n"
-    exit 1
+  printf "$YELLOW$SCRIPT_NAME WARN on line ${LINENO}: WS_PATH=$WS_PATH does not exist!$NC\n"
 fi
 if [ ! -d "$PROJECT_DIR" ]; then
-    printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: PROJECT_DIR=$PROJECT_DIR does not exist!$NC\n"
-    exit 1
+  printf "$RED$SCRIPT_NAME ERROR on line ${LINENO}: PROJECT_DIR=$PROJECT_DIR does not exist!$NC\n"
+  exit 1
 fi
 
 # 5. Build
