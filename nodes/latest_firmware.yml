@@ -4,5 +4,6 @@ dronecan:
   gnss_v2: "https://github.com/RaccoonlabDev/docs/releases/download/v0.12.2/gnss_v2.5_dronecan_v0.12.1_e0ba916.bin"
 
 cyphal:
+  mini: https://github.com/RaccoonlabDev/docs/releases/download/v1.4/cyphal_micro_v1.4.0_52df65ce.bin
   gnss_v2: https://github.com/RaccoonlabDev/docs/releases/download/v1.5.6/gnss_v2.5_cyphal_v1.5.6_c440c82.bin
   gnss_v3: https://github.com/RaccoonlabDev/docs/releases/download/v1.5.4/gnss_v3_cyphal_v1.5.4_cb62980.bin
