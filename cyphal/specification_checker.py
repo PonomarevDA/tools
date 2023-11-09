@@ -17,29 +17,7 @@ import uavcan.node.GetInfo_1_0
 import uavcan.node.port.List_1_0
 import uavcan.register
 import uavcan.register.List_1_0
-
-
-def np_array_to_string(np_array):
-    return "".join([chr(item) for item in np_array])
-
-async def retrive_all_regiter_names(cyphal_node, dest_node_id, max_register_amount=256):
-    register_names = []
-    list_request = uavcan.register.List_1_0.Request()
-    list_client = cyphal_node.make_client(uavcan.register.List_1_0, dest_node_id)
-    for _ in range(max_register_amount):
-        list_response = await list_client.call(list_request)
-        if list_response is None:
-            return None
-
-        register_name = np_array_to_string(list_response[0].name.name)
-        if len(register_name) == 0:
-            break
-
-        register_names.append(register_name)
-        await asyncio.sleep(0.001)
-        list_request.index += 1
-
-    return register_names
+from utils import retrive_all_regiter_names, np_array_to_string
 
 
 class BaseChecker:
@@ -316,6 +294,7 @@ async def main(dest_node_id):
     cyphal_node = pycyphal.application.make_node(node_info)
     cyphal_node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
     cyphal_node.start()
+    print("Cyphal specification checker:")
 
     await NodeNameChecker(cyphal_node, dest_node_id).run()
     await HearbeatFrequencyChecker(cyphal_node, dest_node_id).run()
