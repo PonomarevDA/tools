@@ -304,7 +304,7 @@ async def main(dest_node_id):
     await PortListServersChecker(cyphal_node, dest_node_id).run()
     await PersistentMemoryChecker(cyphal_node, dest_node_id).test()
 
-def test_cyphal_standard(dest_node_id):
+def run_cyphal_standard_checker(dest_node_id):
     asyncio.run(main(dest_node_id))
 
 
@@ -313,4 +313,4 @@ if __name__ == "__main__":
     parser = ArgumentParser(description='Cyphal specification checker')
     parser.add_argument("--node", default='50', type=int, help="Destination node identifier")
     args = parser.parse_args()
-    test_cyphal_standard(dest_node_id=args.node)
+    run_cyphal_standard_checker(dest_node_id=args.node)

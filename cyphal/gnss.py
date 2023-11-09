@@ -3,6 +3,7 @@ import asyncio
 import sys
 import pathlib
 import datetime
+import random
 
 # pylint: disable-next=wrong-import-position
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "build/nunavut_out"))
@@ -10,18 +11,25 @@ import pycyphal.application
 # pylint: disable=import-error
 import uavcan.node
 import ds015.service.gnss.Gnss_0_1
+from utils import get_port_id_reg_value, retrive_all_regiter_names
 
 
 class TimeWeekChecker:
-    def __init__(self, cyphal_node, dest_node_id, gnss_port_id):
+    def __init__(self, cyphal_node, dest_node_id):
         self._node = cyphal_node
         self._dest_node_id = dest_node_id
-        self._gnss_port_id = gnss_port_id
 
     async def run(self):
-        sub = self._node.make_subscriber(ds015.service.gnss.Gnss_0_1, self._gnss_port_id)
+        reg_name = "uavcan.pub.ds015.gps.gnss.id"
+        gnss_port_id = await get_port_id_reg_value(self._node, self._dest_node_id, reg_name)
+        if gnss_port_id == 65535:
+            print(f"GNSS port {reg_name} is disabled. ")
+            print(f"Type `y r {self._dest_node_id} {reg_name} <port_id>`")
+            return
+
+        sub = self._node.make_subscriber(ds015.service.gnss.Gnss_0_1, gnss_port_id)
         sub.receive_in_background(self._callback)
-        await asyncio.sleep(60*60*24)
+        await asyncio.sleep(5)
 
     async def _callback(self, msg, transfer_from):
         if msg.point.latitude == 0.0 and msg.num_sats == 0:
@@ -68,6 +76,11 @@ class TimeWeekChecker:
         time_week_ms = time_week_sec * 1000 + int(gnss_ts.microsecond / 1000)
         return time_week_ms
 
+def random_integer(excluded_set):
+    num = random.randint(0, 6143)
+    while num in excluded_set:
+        num = random.randint(0, 6143)
+    return num
 
 async def main(dest_node_id):
     software_version = uavcan.node.Version_1_0(major=1, minor=0)
@@ -79,8 +92,26 @@ async def main(dest_node_id):
     cyphal_node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
     cyphal_node.start()
 
-    await TimeWeekChecker(cyphal_node, dest_node_id, 2201).run()
+    # await TimeWeekChecker(cyphal_node, dest_node_id).run()
 
+
+    access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
+    register_names = await retrive_all_regiter_names(cyphal_node, dest_node_id)
+    occupied_port_id = set()
+    for reg_name in register_names:
+        if not reg_name.startswith("uavcan.") or not reg_name.endswith(".id"):
+            continue
+        port_id = await get_port_id_reg_value(cyphal_node, dest_node_id, reg_name)
+        occupied_port_id.add(port_id)
+        if port_id == 65535:
+            free_port_id = random_integer(occupied_port_id)
+            print(reg_name, port_id, free_port_id)
+            set_request = uavcan.register.Access_1_0.Request()
+            set_request.name.name = reg_name
+            set_request.value.natural16 = uavcan.primitive.array.Natural16_1_0(free_port_id)
+            access_response = await access_client.call(set_request)
+        # else:
+        #     print(reg_name, port_id)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser

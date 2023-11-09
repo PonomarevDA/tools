@@ -12,7 +12,7 @@ sys.path.insert(0, str(repo_dir / "cyphal"))
 sys.path.insert(0, str(repo_dir / "dronecan"))
 
 from gnss import test_dronecan_gps_mag_baro
-from specification_checker import test_cyphal_standard
+from specification_checker import run_cyphal_standard_checker
 from common import upload_firmware
 
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     if args.protocol == 'dronecan':
         test_dronecan_gps_mag_baro(args.port, REPORT_PATH)
     elif args.protocol == 'cyphal':
-        test_cyphal_standard(50)
+        run_cyphal_standard_checker(50)
 
     if args.printer:
         print_report(filename=REPORT_PATH)
