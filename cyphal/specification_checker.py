@@ -6,6 +6,7 @@ import pathlib
 import random
 import string
 import re
+import pytest
 
 # pylint: disable-next=wrong-import-position
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "build/nunavut_out"))
@@ -17,300 +18,231 @@ import uavcan.node.GetInfo_1_0
 import uavcan.node.port.List_1_0
 import uavcan.register
 import uavcan.register.List_1_0
-from utils import retrive_all_regiter_names, np_array_to_string
+from utils import CyphalTools
 
 
-class BaseChecker:
-    def __init__(self) -> None:
-        pass
-
-    async def test(self):
-        details = await self._run()
-        print(f"{self.__class__.__name__}: ", end="")
-        if len(details) != 0:
-            print(f"violation of {self.__doc__}")
-            print(details)
-        else:
-            print(f"passed")
+@pytest.fixture(scope="session")
+def event_loop():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 
-class NodeNameChecker:
-    def __init__(self, cyphal_node, dest_node_id):
-        self._node = cyphal_node
-        self._dest_node_id = dest_node_id
 
-    async def run(self, number_of_attempts=2):
+@pytest.mark.asyncio
+class TestNodeName:
+    @staticmethod
+    async def test_node_name():
+        print("Node name must follow a specific pattern:")
+        cyphal_node = await CyphalTools.get_node()
+        dest_node_id = await CyphalTools.find_online_node()
+
         request = uavcan.node.GetInfo_1_0.Request()
-        client = self._node.make_client(uavcan.node.GetInfo_1_0, self._dest_node_id)
-        for _ in range(number_of_attempts):
-            response = await client.call(request)
-            if response is not None:
-                break
-            await asyncio.sleep(1)
+        client = cyphal_node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
+        response = await client.call(request)
+        client.close()
+        assert response is not None, "The node has not respond on GetInfo request."
+        print(f"- 1/2. The node has been respond on GetInfo request.")
 
-        if response is None:
-            print("The node has not respond on GetInfo request.")
-            return
-
-        name = np_array_to_string(response[0].name)
-        if not self.check_node_name(name):
-            print(f"The node name {name} does not follow the node name pattern.")
+        name = CyphalTools.np_array_to_string(response[0].name)
+        assert TestNodeName._check_node_name(name), f"The node name '{name}' does not follow the node name pattern."
+        print(f"- 2/2. The node '{name}' follows the node name pattern.")
+        # await asyncio.sleep(0.001)
 
     @staticmethod
-    def check_node_name(node_name):
+    def _check_node_name(node_name):
         pattern = r'^[a-z0-9_\-]+(\.[a-z0-9_\-]+)+$'
         return re.match(pattern, node_name) is not None
 
 
-class HearbeatFrequencyChecker:
+@pytest.mark.asyncio
+class TestHearbeat:
     """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/node/7509.Heartbeat.1.0.dsdl"""
-    def __init__(self, cyphal_node, dest_node_id):
-        self._node = cyphal_node
-        self._dest_node_id = dest_node_id
-        self._heartbeat_timestamps = []
-
-    async def run(self):
-        sub = self._node.make_subscriber(uavcan.node.Heartbeat_1_0)
-        sub.receive_in_background(self._heartbeat_callback)
-        await asyncio.sleep(9)
-        sub.close()
-        periods = self.calculate_time_differences(self._heartbeat_timestamps)
-        if periods is None or periods[0] < 0.9 or periods[1] > 3:
-            eror_msg = f"Violation of: {self.__doc__} \n" + \
-                    f"Details: got {len(self._heartbeat_timestamps)} heartbeats within 9 sec" + \
-                    f" (min period = {periods[0]}, max period = {periods[1]})."
-            print(eror_msg)
-
-    async def _heartbeat_callback(self, _, transfer_from):
-        if transfer_from.source_node_id == self._dest_node_id:
-            self._heartbeat_timestamps.append(time.time())
 
     @staticmethod
-    def calculate_time_differences(timestamps):
-        if len(timestamps) < 3:
-            return None
+    async def test_frequency(seconds: int = 5):
+        print("Heartbeat frequency should be 1.0 Hz (check 5 seconds):")
+        cyphal_node = await CyphalTools.get_node()
+        dest_node_id = await CyphalTools.find_online_node()
+        sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
 
-        periods = [timestamps[i] - timestamps[i - 1] for i in range(1, len(timestamps))]
-        return min(periods), max(periods)
+        timestamps = [time.time()]
+
+        while len(timestamps) < seconds + 2:
+            transfer_from = await sub.receive_for(1.1)
+            crnt_time_sec = time.time()
+            elapsed_time = crnt_time_sec - timestamps[-1]
+            assert elapsed_time <= 1.1, f"Heartbeat has not been appeared for {elapsed_time :.3f} seconds already."
+
+            if transfer_from[1].source_node_id == dest_node_id:
+                if len(timestamps) != 1:
+                    print(f"- {len(timestamps) - 1}/{seconds}. {elapsed_time :.3f} seconds after previous Heartbeat.")
+                    assert elapsed_time >= 0.9, f"Heartbeat has been appeared too erly: {elapsed_time :.3f} seconds."
+                timestamps.append(crnt_time_sec)
 
 
-class RegistersNameChecker(BaseChecker):
+@pytest.mark.asyncio
+class TestPersistentMemory():
+
+    """Persistent memory check: 1. set random, 2. save, 3. reboot, 4. get"""
+    @staticmethod
+    async def test_persistent_memory() -> None:
+        print("TestPersistentMemory:")
+
+        cyphal_node = await CyphalTools.get_node()
+        dest_node_id = await CyphalTools.find_online_node()
+        register_name = "uavcan.node.description"
+        random_test_value = ''.join(random.choices(string.ascii_lowercase, k=10))
+        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
+        cmd_client = cyphal_node.make_client(uavcan.node.ExecuteCommand_1_1, dest_node_id)
+
+        set_request = uavcan.register.Access_1_0.Request()
+        set_request.name.name = register_name
+        set_request.value.string = uavcan.primitive.String_1_0(random_test_value)
+        access_response = await access_client.call(set_request)
+        assert access_response is not None, "Access retrive failed!"
+        value = CyphalTools.np_array_to_string(access_response[0].value.string.value)
+        assert value == random_test_value, f"1/4. Accees expected {random_test_value}, got {value}!"
+        print(f"- 1/4. y r {dest_node_id} uavcan.node.description {random_test_value} # success")
+
+        save_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65530)
+        cmd_response = await cmd_client.call(save_request)
+        assert cmd_response is not None, "2/4. ExecuteCommand retrive failed!"
+        print(f"- 2/4. y r {dest_node_id} 65530 # success")
+
+        reboot_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65535)
+        await cmd_client.call(reboot_request)
+        assert cmd_response is not None, "2/4. ExecuteCommand retrive failed!"
+        print(f"- 3/4. y r {dest_node_id} 65535 # success")
+
+        get_request = uavcan.register.Access_1_0.Request()
+        get_request.name.name = register_name
+        access_response = await access_client.call(set_request)
+        assert access_response is not None, "4/4. Access retrive failed!"
+        value = CyphalTools.np_array_to_string(access_response[0].value.string.value)
+        assert value == random_test_value, f"4/4. Accees expects {random_test_value}, got {value}!"
+        print(f"- 4/4. y r {dest_node_id} uavcan.node.description # success: {random_test_value}")
+
+
+@pytest.mark.asyncio
+class TestPortList:
+    """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/node/port/7510.List.1.0.dsdl"""
+
+    @staticmethod
+    async def test_port_list():
+        cyphal_node = await CyphalTools.get_node()
+        port_list_msg = await CyphalTools.get_port_list()
+
+        assert port_list_msg is not None, "uavcan.port.List was not published!"
+
+        print(f"Check port.List:")
+        print(f"- register.Access {port_list_msg.servers.mask[384]}")
+        print(f"- register.List   {port_list_msg.servers.mask[385]}")
+        print(f"- GetInfo         {port_list_msg.servers.mask[430]}")
+        print(f"- ExecuteCommand  {port_list_msg.servers.mask[435]}")
+
+        assert port_list_msg.servers.mask[384], "register.Access is not supported"
+        assert port_list_msg.servers.mask[385], "register.List is not supported"
+        assert port_list_msg.servers.mask[430], "GetInfo is not supported"
+        assert port_list_msg.servers.mask[435], "ExecuteCommand is not supported"
+
+
+@pytest.mark.asyncio
+class TestRegisters:
     """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/register/384.Access.1.0.dsdl"""
-    def __init__(self, cyphal_node, dest_node_id):
-        self._node = cyphal_node
-        self._dest_node_id = dest_node_id
 
-    async def _run(self) -> str:
-        details = ""
-        register_names = await retrive_all_regiter_names(self._node, self._dest_node_id)
+    @staticmethod
+    async def test_registers_name():
+        dest_node_id = await CyphalTools.find_online_node()
+        register_names = await CyphalTools.register_list(dest_node_id)
+        assert len(register_names) >= 2, "Node should have at least 2 registers!"
 
+        print("Registers:")
+        all_register_correct = True
         for register_name in register_names:
-            if not self.check_register_name(register_name):
-                if len(details) != 0:
-                    details += "\n"
-                details += f"- `{register_name}` register has wrong name pattern"
+            register_correct = TestRegisters.check_register_name(register_name)
+            print(f"- {register_name :<30} : {register_correct}")
+            if not register_correct:
+                all_register_correct = False
+        assert all_register_correct
 
-        return details
+    @staticmethod
+    async def test_default_registers_existance():
+        cyphal_node = await CyphalTools.get_node()
+        dest_node_id = await CyphalTools.find_online_node()
+
+        required_register_names = [
+            "uavcan.node.id",
+            "uavcan.node.description",
+        ]
+
+        access_request = uavcan.register.Access_1_0.Request()
+        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
+        access_response = None
+        print("Check required registers existance:")
+        for register_name in required_register_names:
+            access_request.name.name = register_name
+            access_response = await access_client.call(access_request)
+            assert access_response is not None
+            reply_not_empty = access_response[0].value.empty is None
+            print(f"- {register_name :<30} : {reply_not_empty}")
+            assert reply_not_empty
+
+    @staticmethod
+    async def test_port_register_types():
+        cyphal_node = await CyphalTools.get_node()
+        dest_node_id = await CyphalTools.find_online_node()
+        all_register_names = await CyphalTools.register_list(dest_node_id)
+
+        access_request = uavcan.register.Access_1_0.Request()
+        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
+        
+        print("Check port registers type:")
+        for register_name in all_register_names:
+            port_type, port_reg_type = CyphalTools.get_port_type_by_register_name(register_name)
+            if port_type is None or port_reg_type is None:
+                print(f"- {register_name :<30} skip")
+                continue
+
+            access_request.name.name = register_name
+            access_response = await access_client.call(access_request)
+
+            assert access_response is not None
+
+            access_response = access_response[0]
+            if port_reg_type == "id":
+                assert access_response.value.natural16 is not None, f"- {register_name} should have natural16 type, but it is not"
+                assert access_response._mutable and access_response.persistent, f"- {register_name} should be mutable and persistent, but it is {access_response}"
+                print(f"- {register_name :<30} is natural16, mutable and persistent.")
+            elif port_reg_type == "type":
+                assert access_response.value.string is not None, f"- {register_name} should have string type, but it is not"
+                assert access_response._mutable is False and access_response.persistent is True, f"- {register_name} should be immutable and persistent, but it is {access_response}"
+                print(f"- {register_name :<30} is string, immutable and persistent")
 
     @staticmethod
     def check_register_name(register_name):
         pattern = r'^[a-z][a-z0-9._]*(\.[a-z0-9._]+)+$'
         return re.match(pattern, register_name) is not None
 
-
-class PortRegistersTypeChecker(BaseChecker):
-    """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/register/384.Access.1.0.dsdl"""
-    def __init__(self, cyphal_node, dest_node_id):
-        self._node = cyphal_node
-        self._dest_node_id = dest_node_id
-
-    async def _run(self):
-        details = ""
-        all_register_names = await retrive_all_regiter_names(self._node, self._dest_node_id)
-
-        access_request = uavcan.register.Access_1_0.Request()
-        access_client = self._node.make_client(uavcan.register.Access_1_0, self._dest_node_id)
-        for register_name in all_register_names:
-            port_type, port_reg_type = self.get_port_type_by_register_name(register_name)
-            if port_type is None or port_reg_type is None:
-                continue
-
-            access_request.name.name = register_name
-            access_response = await access_client.call(access_request)
-
-            if access_response is None:
-                details += f"- {register_name} retrive failed\n"
-                continue
-
-            access_response = access_response[0]
-            if port_reg_type == "id":
-                if access_response.value.natural16 is None:
-                    details += f"- {register_name} should have natural16 type, but it is not.\n"
-                elif access_response._mutable is False or access_response.persistent is False:
-                    details += f"- {register_name} should be mutable and persistent, but it is {access_response}.\n"
-            elif port_reg_type == "type":
-                if access_response.value.string is None:
-                    details += f"- {register_name} should have string type, but it is not.\n"
-                elif access_response._mutable is True or access_response.persistent is False:
-                    details += f"- {register_name} should be mutable and persistent, but it is {access_response}.\n"
-
-        return details
-
-    @staticmethod
-    def get_port_type_by_register_name(reg):
-        port_type = None
-        port_reg_type = None
-
-        if reg.startswith("uavcan.pub"):
-            port_type = 'pub'
-        elif reg.startswith("uavcan.sub"):
-            port_type = 'sub'
-        elif reg.startswith("uavcan.cln"):
-            port_type = 'cln'
-        elif reg.startswith("uavcan.srv"):
-            port_type = 'srv'
-
-        if reg.endswith(".id"):
-            port_reg_type = "id"
-        elif reg.endswith(".type"):
-            port_reg_type = "type"
-
-        return port_type, port_reg_type
-
-class PersistentMemoryChecker(BaseChecker):
-    """Persistent memory check: 1. set random, 2. save, 3. reboot, 4. get"""
-    def __init__(self, cyphal_node, dest_node_id):
-        self._node = cyphal_node
-        self._dest_node_id = dest_node_id
-        self._register_name = "uavcan.node.description"
-        self._test_value = ''.join(random.choices(string.ascii_lowercase, k=10))
-
-        self._access_client = self._node.make_client(uavcan.register.Access_1_0, self._dest_node_id)
-        self._cmd_client = self._node.make_client(uavcan.node.ExecuteCommand_1_1, self._dest_node_id)
-
-    async def _run(self):
-        details = ""
-
-        set_request = uavcan.register.Access_1_0.Request()
-        set_request.name.name = self._register_name
-        set_request.value.string = uavcan.primitive.String_1_0(self._test_value)
-        access_response = await self._access_client.call(set_request)
-        if access_response is None:
-            return "1/4. Access retrive failed"
-        value = np_array_to_string(access_response[0].value.string.value)
-        if value != self._test_value:
-            return f"1/4. Accees expected {self._test_value}, got {value}"
-
-        save_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65530)
-        cmd_response = await self._cmd_client.call(save_request)
-        if cmd_response is None:
-            return f"2/4. ExecuteCommand retrive failed"
-
-        reboot_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65535)
-        await self._cmd_client.call(reboot_request)
-
-        get_request = uavcan.register.Access_1_0.Request()
-        get_request.name.name = self._register_name
-        access_response = await self._access_client.call(set_request)
-        if access_response is None:
-            return "4/4. Access retrive failed"
-        value = np_array_to_string(access_response[0].value.string.value)
-        if value != self._test_value:
-            return f"4/4. Accees expected {self._test_value}, got {value}"
-
-        return details
-
-class DefaultRegistersExistanceChecker:
-    """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/register/384.Access.1.0.dsdl"""
-    def __init__(self, cyphal_node, dest_node_id):
-        self._node = cyphal_node
-        self._dest_node_id = dest_node_id
-
-    async def run(self):
-        is_test_successfull = True
-
-        register_names = [
-            "uavcan.node.id",
-            "uavcan.node.description",
-        ]
-        access_request = uavcan.register.Access_1_0.Request()
-        access_client = self._node.make_client(uavcan.register.Access_1_0, self._dest_node_id)
-        access_response = None
-        for register_name in register_names:
-            access_request.name.name = register_name
-            access_response = await access_client.call(access_request)
-            if access_response is None:
-                is_test_successfull = False
-                continue
-
-            if access_response[0].value.empty is not None:
-                print(f"{register_name} is not exist")
-
-        return is_test_successfull
-
-class PortListServersChecker:
-    """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/node/port/7510.List.1.0.dsdl"""
-    def __init__(self, cyphal_node, dest_node_id):
-        self._node = cyphal_node
-        self._dest_node_id = dest_node_id
-        self._port_list_msg = None
-
-    async def run(self):
-        sub = self._node.make_subscriber(uavcan.node.port.List_1_0)
-        sub.receive_in_background(self._port_list_callback)
-
-        for _ in range(11):
-            await asyncio.sleep(1)
-            if self._port_list_msg is not None:
-                break
-
-        if self._port_list_msg is None:
-            print("uavcan.port.List was not published")
-        elif not self.is_enough_servers(self._port_list_msg.servers.mask):
-            print(f"Violation of: {self.__doc__}")
-            print("Details: uavcan.port.List doesn't support required services:")
-            print(f"- 384 (register.Access): {self._port_list_msg.servers.mask[384]}")
-            print(f"- 385 (register.List): {self._port_list_msg.servers.mask[385]}")
-            print(f"- 430 (GetInfo): {self._port_list_msg.servers.mask[430]}")
-            print(f"- 435 (ExecuteCommand): {self._port_list_msg.servers.mask[435]}")
-
-    async def _port_list_callback(self, msg, _):
-        self._port_list_msg = msg
-
-    @staticmethod
-    def is_enough_servers(mask):
-        if mask[384] == True and mask[385] == True and mask[430] == True and mask[435] == True:
-            return True
-
-        return False
-
-
-async def main(dest_node_id):
-    software_version = uavcan.node.Version_1_0(major=1, minor=0)
-    node_info = uavcan.node.GetInfo_1_0.Response(
-        software_version,
-        name="co.raccoonlab.spec_checker"
-    )
-    cyphal_node = pycyphal.application.make_node(node_info)
-    cyphal_node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
-    cyphal_node.start()
+async def main():
     print("Cyphal specification checker:")
+    await TestRegisters.test_registers_name()
+    await TestRegisters.test_default_registers_existance()
+    await TestRegisters.test_port_register_types()
+    await TestPortList.test_port_list()
+    await TestPersistentMemory.test_persistent_memory()
+    await TestHearbeat.test_frequency()
+    await TestNodeName.test_node_name()
 
-    await NodeNameChecker(cyphal_node, dest_node_id).run()
-    await HearbeatFrequencyChecker(cyphal_node, dest_node_id).run()
-    await RegistersNameChecker(cyphal_node, dest_node_id).test()
-    await PortRegistersTypeChecker(cyphal_node, dest_node_id).test()
-    await DefaultRegistersExistanceChecker(cyphal_node, dest_node_id).run()
-    await PortListServersChecker(cyphal_node, dest_node_id).run()
-    await PersistentMemoryChecker(cyphal_node, dest_node_id).test()
-
-def run_cyphal_standard_checker(dest_node_id):
-    asyncio.run(main(dest_node_id))
+def run_cyphal_standard_checker():
+    asyncio.run(main())
 
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser(description='Cyphal specification checker')
-    parser.add_argument("--node", default='50', type=int, help="Destination node identifier")
     args = parser.parse_args()
-    run_cyphal_standard_checker(dest_node_id=args.node)
+    run_cyphal_standard_checker()

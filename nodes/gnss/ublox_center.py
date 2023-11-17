@@ -11,7 +11,7 @@ sys.path.insert(0, str(repo_dir / "build/nunavut_out"))
 sys.path.insert(0, str(repo_dir / "cyphal"))
 
 from fragments import CyphalFragmentSub, CyphalFragmentPub
-from utils import get_port_id_reg_value
+from utils import CyphalTools
 import pycyphal.application
 from uavcan.node import GetInfo_1_0
 
@@ -77,8 +77,8 @@ class CyphalGnss:
     UBX_TX_REG = "uavcan.pub.gps.ubx_tx.id"
     @staticmethod
     async def create(node, gnss_id):
-        fragment_pub_port_id = await get_port_id_reg_value(node, gnss_id, CyphalGnss.UBX_RX_REG)
-        fragment_sub_port_id = await get_port_id_reg_value(node, gnss_id, CyphalGnss.UBX_TX_REG)
+        fragment_pub_port_id = await CyphalTools.get_port_id_reg_value(gnss_id, CyphalGnss.UBX_RX_REG)
+        fragment_sub_port_id = await CyphalTools.get_port_id_reg_value(gnss_id, CyphalGnss.UBX_TX_REG)
 
         config_required = False
         if fragment_pub_port_id == 65535:
