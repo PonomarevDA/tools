@@ -4,7 +4,7 @@ from common import upload_firmware
 import subprocess
 
 SUPPORTED_PROTOCOLS = ["cyphal", "dronecan"]
-SUPPORTED_NODES = ["mini"]
+SUPPORTED_NODES = ["mini", "micro", "kirpi", "gnss_v2", "gnss_v3"]
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='RaccoonLab node tester:'
