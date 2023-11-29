@@ -73,7 +73,7 @@ Assumptions for all nodes:
 Usage:
 
 ```bash
-source cyphal/ds015.sh
+source cyphal/init.sh
 pytest cyphal/specification_checker.py --verbose
 ```
 
