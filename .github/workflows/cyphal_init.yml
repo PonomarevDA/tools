@@ -1,4 +1,4 @@
-name: cyphal_init
+name: cyphal_init.sh
 
 on: [push]
 jobs:
@@ -16,13 +16,17 @@ jobs:
         with:
           path: 'repository'
 
-      - name: vcan
-        run: ./repository/can/vcan.sh slcan0
-
       - uses: actions/checkout@v3
         with:
           repository: OpenCyphal/public_regulated_data_types
           path: 'repository/public_regulated_data_types'
 
-      - name: test cyphal/init.sh
-        run: source repository/cyphal/init.sh
+      - name: Create VCAN and compile DSDL 
+        run: |
+          source repository/cyphal/init.sh --interface slcan0 --node-id 127 -v
+
+      - name: Check Yakut result 
+        run: |
+          source repository/cyphal/init.sh -i slcan0 -n 127 -v
+          timeout --verbose --preserve-status 3 y mon > yakut_output.txt || true
+          cat yakut_output.txt

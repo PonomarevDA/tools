@@ -58,7 +58,7 @@ while [[ $# -gt 0 ]]; do
         *)
         log_error "Unknown option: $1"
         echo "$HELP"
-        [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 0 || return 1
+        [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 1 || return 1
         ;;
     esac
     shift
@@ -98,7 +98,7 @@ if [ -z $DEV_PATH ]; then
 
     if [ -z "$DEV_PATH" ]; then
         log_error "Can't find a sniffer"
-        [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 0 || return 1
+        [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 2 || return 1
     fi
 
     if [[ $ONLY_FIND == "yes" ]]; then
@@ -122,5 +122,5 @@ create_slcan
 
 if [[ -z $(ifconfig | grep $INTERFACE) ]]; then
     log_error "Interface '$INTERFACE' has not been successfully created"
-    [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 0 || return 1
+    [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 3 || return 1
 fi
