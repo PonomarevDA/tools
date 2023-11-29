@@ -3,6 +3,7 @@ import sys
 import time
 import pathlib
 import asyncio
+import numpy
 
 # pylint: disable-next=wrong-import-position
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "build/nunavut_out"))
@@ -39,13 +40,24 @@ class CyphalTools:
         while time_left_sec > 0.0:
             time_left_sec = (start_time_sec + timeout) - time.time()
             transfer = await sub.receive_for(time_left_sec)
-            assert isinstance(transfer, tuple)
+            assert isinstance(transfer, tuple), f"Type is type(transfer) :("
             if transfer[1].source_node_id != 127:
                 dest_node_id = transfer[1].source_node_id
                 break
         sub.close()
 
         return dest_node_id
+
+    @staticmethod
+    async def get_tested_node_name():
+        cyphal_node = await CyphalTools.get_node()
+        dest_node_id = await CyphalTools.find_online_node()
+        request = uavcan.node.GetInfo_1_0.Request()
+        client = cyphal_node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
+        response = await client.call(request)
+        client.close()
+        name = CyphalTools.np_array_to_string(response[0].name)
+        return name
 
     @staticmethod
     async def get_port_list(timeout : float = 10.1) -> None:
@@ -115,7 +127,8 @@ class CyphalTools:
         return access_response[0].value.natural16.value[0]
 
     @staticmethod
-    def np_array_to_string(np_array):
+    def np_array_to_string(np_array : numpy.ndarray) -> str:
+        assert isinstance(np_array, numpy.ndarray)
         return "".join([chr(item) for item in np_array])
 
     @staticmethod

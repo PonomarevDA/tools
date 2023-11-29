@@ -20,6 +20,14 @@ import uavcan.register
 import uavcan.register.List_1_0
 from utils import CyphalTools
 
+@pytest.fixture(autouse=True)
+async def run_around_tests():
+    """
+    We need to keep a pause before exit.
+    Task was destroyed but it is pending
+    """
+    yield
+    await asyncio.sleep(0.001)
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -50,7 +58,6 @@ class TestNodeName:
         name = CyphalTools.np_array_to_string(response[0].name)
         assert TestNodeName._check_node_name(name), f"The node name '{name}' does not follow the node name pattern."
         print(f"- 2/2. The node '{name}' follows the node name pattern.")
-        # await asyncio.sleep(0.001)
 
     @staticmethod
     def _check_node_name(node_name):
@@ -92,35 +99,48 @@ class TestPersistentMemory():
     async def test_persistent_memory() -> None:
         print("TestPersistentMemory:")
 
+        dest_node_name = await CyphalTools.get_tested_node_name()
+        if dest_node_name == 'org.opencyphal.yakut.monitor':
+            print("Skip test because yakut doesn't support ExecuteCommand.")
+            return
+
         cyphal_node = await CyphalTools.get_node()
         dest_node_id = await CyphalTools.find_online_node()
         register_name = "uavcan.node.description"
         random_test_value = ''.join(random.choices(string.ascii_lowercase, k=10))
-        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
         cmd_client = cyphal_node.make_client(uavcan.node.ExecuteCommand_1_1, dest_node_id)
+        cmd_client.close()
 
         set_request = uavcan.register.Access_1_0.Request()
         set_request.name.name = register_name
         set_request.value.string = uavcan.primitive.String_1_0(random_test_value)
+        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
         access_response = await access_client.call(set_request)
+        access_client.close()
         assert access_response is not None, "Access retrive failed!"
         value = CyphalTools.np_array_to_string(access_response[0].value.string.value)
         assert value == random_test_value, f"1/4. Accees expected {random_test_value}, got {value}!"
         print(f"- 1/4. y r {dest_node_id} uavcan.node.description {random_test_value} # success")
 
         save_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65530)
+        cmd_client = cyphal_node.make_client(uavcan.node.ExecuteCommand_1_1, dest_node_id)
         cmd_response = await cmd_client.call(save_request)
+        cmd_client.close()
         assert cmd_response is not None, "2/4. ExecuteCommand retrive failed!"
         print(f"- 2/4. y r {dest_node_id} 65530 # success")
 
         reboot_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65535)
+        cmd_client = cyphal_node.make_client(uavcan.node.ExecuteCommand_1_1, dest_node_id)
         await cmd_client.call(reboot_request)
+        cmd_client.close()
         assert cmd_response is not None, "2/4. ExecuteCommand retrive failed!"
         print(f"- 3/4. y r {dest_node_id} 65535 # success")
 
         get_request = uavcan.register.Access_1_0.Request()
         get_request.name.name = register_name
+        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
         access_response = await access_client.call(set_request)
+        access_client.close()
         assert access_response is not None, "4/4. Access retrive failed!"
         value = CyphalTools.np_array_to_string(access_response[0].value.string.value)
         assert value == random_test_value, f"4/4. Accees expects {random_test_value}, got {value}!"
@@ -133,21 +153,22 @@ class TestPortList:
 
     @staticmethod
     async def test_port_list():
-        cyphal_node = await CyphalTools.get_node()
+        dest_node_name = await CyphalTools.get_tested_node_name()
         port_list_msg = await CyphalTools.get_port_list()
-
         assert port_list_msg is not None, "uavcan.port.List was not published!"
 
-        print(f"Check port.List:")
+        print(f"Check port.List of {dest_node_name}:")
         print(f"- register.Access {port_list_msg.servers.mask[384]}")
         print(f"- register.List   {port_list_msg.servers.mask[385]}")
         print(f"- GetInfo         {port_list_msg.servers.mask[430]}")
-        print(f"- ExecuteCommand  {port_list_msg.servers.mask[435]}")
+        if not dest_node_name == 'org.opencyphal.yakut.monitor':
+            print(f"- ExecuteCommand  {port_list_msg.servers.mask[435]}")
 
         assert port_list_msg.servers.mask[384], "register.Access is not supported"
         assert port_list_msg.servers.mask[385], "register.List is not supported"
         assert port_list_msg.servers.mask[430], "GetInfo is not supported"
-        assert port_list_msg.servers.mask[435], "ExecuteCommand is not supported"
+        if not dest_node_name == 'org.opencyphal.yakut.monitor':
+            assert port_list_msg.servers.mask[435], "ExecuteCommand is not supported"
 
 
 @pytest.mark.asyncio
