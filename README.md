@@ -4,25 +4,15 @@
 
 It is expected to use Ununtu 20.04 or newer.
 
-> This repository is work in progress. If you find a bug or something is not clear, please open an issue.
-
-The scripts are divided into the following folders:
-
 ## Cyphal/CAN
 
-A few Cyphal related scripts are collected here:
+For details of the Cyphal related scripts please check the corresponded [cyphal/README.md](cyphal/README.md) file. Here is a brief info of the most essential scripts:
 
 1. [cyphal/init.sh](cyphal/init.sh) is used for automatically:
     1. Create CAN-interface either on a real CAN-sniffer or vitual CAN interface
     2. Configure environment variables for Yakut or Yukon
     3. Compile DSDL based on public regulated data types
 2. [cyphal/specification_checker.py](cyphal/specification_checker.py) can be used as part of CI or just to check does a not correspond to the Cyphal standard or not. |
-
-For details please check the corresponded [cyphal/README.md](cyphal/README.md) file.
-
-## DroneCAN
-
-> Work in progress...
 
 ## CAN
 
@@ -48,6 +38,10 @@ A few STM32 related scripts are located in [stm32](stm32) folder:
     cd repo
     ./tools/stm32/build_cubeide.sh -v -c /opt/stm32cubeide/stm32cubeide -d . -p project_example
     ```
+
+## DroneCAN
+
+> Work in progress...
 
 ## RaccoonLab nodes
 
