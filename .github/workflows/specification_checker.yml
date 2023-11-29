@@ -1,0 +1,34 @@
+name: specification_checker.py
+
+on: [push]
+jobs:
+  specification_checker:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y linux-modules-extra-$(uname -r)
+          python3 -m pip install yakut pytest pytest-asyncio
+
+      - uses: actions/checkout@v3
+        with:
+          path: 'repository'
+
+      - uses: actions/checkout@v3
+        with:
+          repository: OpenCyphal/public_regulated_data_types
+          path: 'repository/public_regulated_data_types'
+
+      - name: Run Cyphal node with ID 126 in background (Yakut Monitor)
+        run: |
+          cd repository
+          source cyphal/init.sh --interface slcan0 --node-id 126 -v
+          y mon &
+
+      - name: Run pytest
+        run: |
+          cd repository
+          source cyphal/init.sh -i slcan0 -n 127 -v
+          pytest cyphal/specification_checker.py --verbose
