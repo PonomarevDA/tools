@@ -4,59 +4,54 @@
 
 It is expected to use Ununtu 20.04 or newer.
 
-## Install dependencies
+> This repository is work in progress. If you find a bug or something is not clear, please open an issue.
 
-```bash
-./install_for_ubuntu.sh
-```
+The scripts are divided into the following folders:
 
-## Cyphal usage
+## Cyphal/CAN
 
-The following script automatically:
-1. Create SLCAN based on CAN-sniffer
-2. Configure environment variables if they are not already configured
-3. Compile DSDL based on public regulated data types
+A few Cyphal related scripts are collected here:
 
-```bash
-source cyphal/init.sh --help
-```
+1. [cyphal/init.sh](cyphal/init.sh) is used for automatically:
+    1. Create CAN-interface either on a real CAN-sniffer or vitual CAN interface
+    2. Configure environment variables for Yakut or Yukon
+    3. Compile DSDL based on public regulated data types
+2. [cyphal/specification_checker.py](cyphal/specification_checker.py) can be used as part of CI or just to check does a not correspond to the Cyphal standard or not. |
 
-> The script expects you have clonned [public_regulated_data_types](https://github.com/OpenCyphal/public_regulated_data_types) inside this repository. It will compile everything into `build` directory and create interface with name `slcan0`. You can override these parameters by manually setting the following environment variables: `REG_DATA_TYPE_PATH`, `YAKUT_COMPILE_OUTPUT`, `UAVCAN__CAN__IFACE`.
+For details please check the corresponded [cyphal/README.md](cyphal/README.md) file.
 
-## DroneCAN usage
+## DroneCAN
 
-Create SLCAN:
+> Work in progress...
+
+## CAN
+
+Cyphal/CAN and DroneCAN scripts are basically based on the [can/create_slcan.sh](can/create_slcan.sh) script: 
 
 ```bash
 ./can/create_slcan.sh --help
 ```
 
-## STM32 usage
+## STM32 tools
 
-Update STM32 firmware:
+A few STM32 related scripts are located in [stm32](stm32) folder:
 
-```bash
-./stm32/flash.sh <path_to_the_binary.bin>
-```
+1. Update STM32 firmware:
 
-Build STM32CubeIDE project with CLI:
+    ```bash
+    ./stm32/flash.sh <path_to_the_binary.bin>
+    ```
 
-```bash
-cd repo
-./tools/stm32/build_cubeide.sh -v -c /opt/stm32cubeide/stm32cubeide -d . -p project_example
-```
+2. Build STM32CubeIDE project with CLI:
 
-Generate git hash and software version based on git tag:
+    ```bash
+    cd repo
+    ./tools/stm32/build_cubeide.sh -v -c /opt/stm32cubeide/stm32cubeide -d . -p project_example
+    ```
 
-```bash
-cd <root_of_the_repo>
-./stm32/generate_git_hash.sh <output_dir>
-```
+## RaccoonLab nodes
 
-```bash
-cd <root_of_the_repo>
-./stm32/generate_software_version.sh <output_dir>
-```
+> Work in progress. A few RaccoonLab nodes related scripts will be located in [nodes](nodes) folder.
 
 ## License
 
