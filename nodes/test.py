@@ -3,8 +3,8 @@ from argparse import ArgumentParser
 from common import upload_firmware
 import subprocess
 
-SUPPORTED_PROTOCOLS = ["cyphal", "dronecan"]
-SUPPORTED_NODES = ["mini", "micro", "kirpi", "gnss_v2", "gnss_v3"]
+SUPPORTED_PROTOCOLS = ["cyphal", "dronecan", "cyphal_and_dronecan"]
+SUPPORTED_NODES = ["mini", "micro", "kirpi", "gnss_v2", "gnss_v3", 'rangefinder']
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='RaccoonLab node tester:'
@@ -13,7 +13,7 @@ if __name__ == "__main__":
                                         '3. Print result')
     parser.add_argument("--protocol",
                         type=str,
-                        required=True,
+                        default="cyphal_and_dronecan",
                         choices=SUPPORTED_PROTOCOLS,
                         help=str(SUPPORTED_PROTOCOLS))
     parser.add_argument("--node",
