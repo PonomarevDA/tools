@@ -30,7 +30,7 @@ class CyphalTools:
         return CyphalTools.cyphal_node
 
     @staticmethod
-    async def find_online_node(timeout : float = 1.1):
+    async def find_online_node(timeout : float = 1.1) -> int:
         dest_node_id = None
         cyphal_node = await CyphalTools.get_node()
 
