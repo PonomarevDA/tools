@@ -92,7 +92,9 @@ class CyphalGnss:
 
         return CyphalGnss(node, fragment_pub_port_id, fragment_sub_port_id)
 
-    def __init__(self, cyphal_node, fragment_pub_port_id, fragment_sub_port_id) -> None:
+    def __init__(self, cyphal_node, fragment_pub_port_id : int, fragment_sub_port_id : int) -> None:
+        assert isinstance(fragment_pub_port_id, int)
+        assert isinstance(fragment_sub_port_id, int)
         self._fragment_pub = CyphalFragmentPub(cyphal_node, fragment_pub_port_id)
         self._fragment_sub = CyphalFragmentSub(cyphal_node, fragment_sub_port_id)
 

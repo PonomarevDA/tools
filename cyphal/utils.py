@@ -104,7 +104,7 @@ class CyphalTools:
         return port_type, port_reg_type
 
     @staticmethod
-    async def get_port_id_reg_value(dest_node_id : int, register_name : str):
+    async def get_port_id_reg_value(dest_node_id : int, register_name : str) -> int:
         assert isinstance(dest_node_id, int)
         assert isinstance(register_name, str)
         cyphal_node = await CyphalTools.get_node()
@@ -124,7 +124,7 @@ class CyphalTools:
         if access_response[0].value.natural16 is None:
             return None # register is not pord.id
 
-        return access_response[0].value.natural16.value[0]
+        return int(access_response[0].value.natural16.value[0])
 
     @staticmethod
     def np_array_to_string(np_array : numpy.ndarray) -> str:
