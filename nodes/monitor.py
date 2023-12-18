@@ -92,59 +92,108 @@ async def getset_port_id(node_id, callback, def_id, reg_name, data_type):
 
     return id
 
-class GnssMonitor:
+class BaseTopic:
+    def __init__(self, node_id, def_id, reg_name, data_type) -> None:
+        self.data = None
+        self.id = None
+        self.node_id = node_id
+        self.def_id = def_id
+        self.reg_name = reg_name
+        self.data_type = data_type
+    async def init(self):
+        self.id = await getset_port_id(
+            self.node_id,
+            self.callback,
+            def_id=self.def_id,
+            reg_name=self.reg_name,
+            data_type=self.data_type
+        )
+    async def callback(self, data, _):
+        self.data = data
+
+class GpsSatsTopic(BaseTopic):
+    def __init__(self, node_id, def_id=2001, reg="uavcan.pub.zubax.gps.sats.id") -> None:
+        super().__init__(node_id, def_id, reg, uavcan.primitive.scalar.Integer16_1_0)
+    def print_data(self):
+        print(f"GNSS:")
+        print(f"- sats ({self.id}): {self.data.value}")
+
+class GpsTimeUtcTopic(BaseTopic):
+    def __init__(self, node_id, def_id=2002, reg="uavcan.pub.gps.time_utc.id") -> None:
+        super().__init__(node_id, def_id, reg, uavcan.time.SynchronizedTimestamp_1_0)
+    def print_data(self):
+        seconds = int(self.data.microsecond / 1000000)
+        print(f"- time_utc ({self.id}): {seconds} ({datetime.datetime.fromtimestamp(seconds)})")
+
+class MagnetometerTopic(BaseTopic):
+    def __init__(self, node_id, def_id=2000, reg="uavcan.pub.zubax.mag.id") -> None:
+        super().__init__(node_id, def_id, reg, uavcan.si.sample.magnetic_field_strength.Vector3_1_1)
+        self.data = [None, None, None]
+    def print_data(self):
+        mag_field = self.data.ampere_per_meter.tolist()
+        print(f"Magnetometer: ({self.id})")
+        print(f"- x: {mag_field[0]:.3f} Amper/meter")
+        print(f"- y: {mag_field[1]:.3f} Amper/meter")
+        print(f"- z: {mag_field[1]:.3f} Amper/meter")
+
+class BaroPressureTopic(BaseTopic):
+    def __init__(self, node_id, def_id=2100, reg="uavcan.pub.zubax.baro.press.id") -> None:
+        super().__init__(node_id, def_id, reg, uavcan.si.sample.pressure.Scalar_1_0)
+    def print_data(self):
+        print("Barometer:")
+        print(f"- pressure ({self.id}): {self.data.pascal:.2f} Pascal")
+
+class BaroTemperatureTopic(BaseTopic):
+    def __init__(self, node_id, def_id=2101, reg="uavcan.pub.zubax.baro.temp.id") -> None:
+        super().__init__(node_id, def_id, reg, uavcan.si.sample.temperature.Scalar_1_0)
+    def print_data(self):
+        print(f"- temperature ({self.id}): {self.data.kelvin:.2f} Kelvin")
+
+
+class GpsMagBaroMonitor:
+    def __init__(self, node_id) -> None:
+        self.node_id = node_id
+
+        self.topics = [GpsSatsTopic(node_id),
+                       GpsTimeUtcTopic(node_id),
+                       MagnetometerTopic(node_id),
+                       BaroPressureTopic(node_id),
+                       BaroTemperatureTopic(node_id)]
+
+    async def init(self):
+        for topic in self.topics:
+            await topic.init()
+
+    def print_text(self):
+        for topic in self.topics:
+            topic.print_data()
+
+class RaccoonLabConfigurator:
     def __init__(self) -> None:
         self.node_id = None
         self.heartbeat = uavcan.node.Heartbeat_1_0()
-        self.baro_press_pascal = 0.0
-        self.baro_temp_kelvin = 0.0
-        self.mag_data = [-42.0, -42.0, -42.0]
-        self.gnss_sats = 0
-        self.gnss_time_utc = 0
 
     async def main(self):
+        # 1. Define node ID
         cyphal_node = await CyphalTools.get_node()
+        self.node_id = await CyphalTools.find_online_node(timeout=5.0)
         while self.node_id is None:
-            self.node_id = await CyphalTools.find_online_node()
+            self.node_id = await CyphalTools.find_online_node(timeout=5.0)
+        print(f"Node with ID={self.node_id} has been found.")
+
+        # 2. Define node name
         name = await CyphalTools.get_tested_node_name()
+        if name == 'co.raccoonlab.gps_mag_baro':
+            print(f"Well-known node `{name}` has been found.")
+        else:
+            print(f"Unknown node `{name}` has been found. Exit")
+            sys.exit(0)
 
         heartbeat_sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
         heartbeat_sub.receive_in_background(self.heartbeat_callback)
-
-        # Barometer
-        baro_press_id = await getset_port_id(self.node_id,
-                                             self.baro_press_callback,
-                                             def_id=2100,
-                                             reg_name="uavcan.pub.zubax.baro.press.id",
-                                             data_type=uavcan.si.sample.pressure.Scalar_1_0)
-        baro_temp_id = await getset_port_id(self.node_id,
-                                            self.baro_temp_callback,
-                                            def_id=2101,
-                                            reg_name="uavcan.pub.zubax.baro.temp.id",
-                                            data_type=uavcan.si.sample.temperature.Scalar_1_0)
-        await asyncio.sleep(0.1)
-
-        # Magnetometer
-        mag_id = await getset_port_id(self.node_id,
-                                      self.mag_callback,
-                                      def_id=2000,
-                                      reg_name="uavcan.pub.zubax.mag.id",
-                                      data_type=uavcan.si.sample.magnetic_field_strength.Vector3_1_1)
-        await asyncio.sleep(0.1)
-
-        # GNSS
-        gnss_sats_id = await getset_port_id(self.node_id,
-                                            self.gnss_sats_callback,
-                                            def_id=2001,
-                                            reg_name="uavcan.pub.zubax.gps.sats.id",
-                                            data_type=uavcan.primitive.scalar.Integer16_1_0)
-        time_utc_id = await getset_port_id(self.node_id,
-                                           self.time_utc_callback,
-                                           def_id=2002,
-                                           reg_name="uavcan.pub.gps.time_utc.id",
-                                           data_type=uavcan.time.SynchronizedTimestamp_1_0)
-        await asyncio.sleep(0.1)
-
+        node = GpsMagBaroMonitor(self.node_id)
+        await node.init()
+        await asyncio.sleep(3.0)
         while True:
             os.system('clear')
             print("RaccoonLab monitor")
@@ -154,38 +203,13 @@ class GnssMonitor:
             print(f"- Health: {health_value_to_string(self.heartbeat.health.value)}")
             print(f"- Mode: {mode_value_to_string(self.heartbeat.mode.value)}")
             print(f"- VSSC: {vssc_value_to_string(self.heartbeat.vendor_specific_status_code)}")
-
-            print("GNSS:")
-            print(f"- sats ({gnss_sats_id}): {self.gnss_sats}")
-            print(f"- time_utc ({time_utc_id}): {self.gnss_time_utc} ({datetime.datetime.fromtimestamp(self.gnss_time_utc)})")
-
-            print("Barometer:")
-            print(f"- pressure ({baro_press_id}): {self.baro_press_pascal:.2f} Pascal")
-            print(f"- temperature ({baro_temp_id}): {self.baro_temp_kelvin:.2f} Kelvin")
-
-            print(f"Magnetometer: ({mag_id}) : {self.mag_data[0]:.3f} {self.mag_data[1]:.3f} {self.mag_data[2]:.3f} Amper/meter")
-
+            node.print_text()
             await asyncio.sleep(0.1)
-
-    async def baro_press_callback(self, data, _):
-        self.baro_press_pascal = data.pascal
-
-    async def baro_temp_callback(self, data, _):
-        self.baro_temp_kelvin = data.kelvin
-
-    async def mag_callback(self, data, _):
-        self.mag_data = data.ampere_per_meter.tolist()
-
-    async def gnss_sats_callback(self, data, _):
-        self.gnss_sats = data.value
-
-    async def time_utc_callback(self, data, _):
-        self.gnss_time_utc = int(data.microsecond / 1000000)
 
     async def heartbeat_callback(self, data, transfer_from):
         if self.node_id == transfer_from.source_node_id:
             self.heartbeat = data
 
 if __name__ == "__main__":
-    gnss_monitor = GnssMonitor()
-    asyncio.run(gnss_monitor.main())
+    rl_configurator = RaccoonLabConfigurator()
+    asyncio.run(rl_configurator.main())

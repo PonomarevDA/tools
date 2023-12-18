@@ -40,6 +40,8 @@ class CyphalTools:
         while time_left_sec > 0.0:
             time_left_sec = (start_time_sec + timeout) - time.time()
             transfer = await sub.receive_for(time_left_sec)
+            if transfer is None:
+                break
             assert isinstance(transfer, tuple), f"Type is type(transfer) :("
             if transfer[1].source_node_id != 127:
                 dest_node_id = transfer[1].source_node_id
@@ -49,14 +51,18 @@ class CyphalTools:
         return dest_node_id
 
     @staticmethod
-    async def get_tested_node_name():
+    async def get_tested_node_name() -> str:
         cyphal_node = await CyphalTools.get_node()
         dest_node_id = await CyphalTools.find_online_node()
         request = uavcan.node.GetInfo_1_0.Request()
         client = cyphal_node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
         response = await client.call(request)
         client.close()
-        name = CyphalTools.np_array_to_string(response[0].name)
+
+        if response is not None:
+            name = CyphalTools.np_array_to_string(response[0].name)
+        else:
+            name = None
         return name
 
     @staticmethod
