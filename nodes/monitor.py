@@ -6,7 +6,7 @@ import asyncio
 import pathlib
 import numpy
 
-repo_dir = pathlib.Path(__file__).resolve().parent.parent.parent
+repo_dir = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(repo_dir / "build/nunavut_out"))
 sys.path.insert(0, str(repo_dir / "cyphal"))
 # pylint: disable=import-error
@@ -147,7 +147,7 @@ class GnssMonitor:
 
         while True:
             os.system('clear')
-            print("RaccoonLab GNSS monitor")
+            print("RaccoonLab monitor")
             print("Node info:")
             print(f"- Name: {name}")
             print(f"- ID: {self.node_id}")
