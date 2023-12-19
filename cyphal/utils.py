@@ -3,7 +3,7 @@ import sys
 import time
 import pathlib
 import asyncio
-import numpy
+import numpy as np
 
 # pylint: disable-next=wrong-import-position
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "build/nunavut_out"))
@@ -24,7 +24,16 @@ class CyphalTools:
             software_version,
             name="co.raccoonlab.spec_checker"
         )
-        CyphalTools.cyphal_node = pycyphal.application.make_node(node_info)
+        try:
+            CyphalTools.cyphal_node = pycyphal.application.make_node(node_info)
+        except pycyphal.application._node_factory.MissingTransportConfigurationError:
+            print("MissingTransportConfigurationError: Available registers do not encode a valid transport configuration.")
+            print("Try `source cyphal/init.sh`.")
+            sys.exit(1)
+        except OSError:
+            print("OSError: [Errno 19] No such device.")
+            print("Try `source cyphal/init.sh`.")
+            sys.exit(1)
         CyphalTools.cyphal_node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
         CyphalTools.cyphal_node.start()
         return CyphalTools.cyphal_node
@@ -51,19 +60,30 @@ class CyphalTools:
         return dest_node_id
 
     @staticmethod
-    async def get_tested_node_name() -> str:
+    async def get_tested_node_info() -> dict:
+        """Return a dictionary on success. Otherwise return None."""
         cyphal_node = await CyphalTools.get_node()
         dest_node_id = await CyphalTools.find_online_node()
+
         request = uavcan.node.GetInfo_1_0.Request()
         client = cyphal_node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
         response = await client.call(request)
         client.close()
 
         if response is not None:
-            name = CyphalTools.np_array_to_string(response[0].name)
+            response = response[0]
+            uid_size = 12 if np.all(response.unique_id[12:] == 0) else 16
+            uid = ''.join(format(x, '02X') for x in response.unique_id[0:uid_size])
+            res = {
+                'name'       : CyphalTools.np_array_to_string(response.name),
+                'hw_version' : (response.hardware_version.major, response.hardware_version.minor),
+                'sw_version' : (response.software_version.major, response.software_version.minor),
+                'git_hash'   : response.software_vcs_revision_id,
+                'uid'        : uid
+            }
         else:
-            name = None
-        return name
+            res = None
+        return res
 
     @staticmethod
     async def get_port_list(timeout : float = 10.1) -> None:
@@ -133,8 +153,8 @@ class CyphalTools:
         return int(access_response[0].value.natural16.value[0])
 
     @staticmethod
-    def np_array_to_string(np_array : numpy.ndarray) -> str:
-        assert isinstance(np_array, numpy.ndarray)
+    def np_array_to_string(np_array : np.ndarray) -> str:
+        assert isinstance(np_array, np.ndarray)
         return "".join([chr(item) for item in np_array])
 
     @staticmethod

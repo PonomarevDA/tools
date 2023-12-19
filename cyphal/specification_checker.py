@@ -99,7 +99,8 @@ class TestPersistentMemory():
     async def test_persistent_memory() -> None:
         print("TestPersistentMemory:")
 
-        dest_node_name = await CyphalTools.get_tested_node_name()
+        tested_node_info = await CyphalTools.get_tested_node_info()
+        dest_node_name = tested_node_info['name']
         if dest_node_name == 'org.opencyphal.yakut.monitor':
             print("Skip test because yakut doesn't support ExecuteCommand.")
             return
@@ -153,7 +154,8 @@ class TestPortList:
 
     @staticmethod
     async def test_port_list():
-        dest_node_name = await CyphalTools.get_tested_node_name()
+        tested_node_info = await CyphalTools.get_tested_node_info()
+        dest_node_name = tested_node_info['name']
         port_list_msg = await CyphalTools.get_port_list()
         assert port_list_msg is not None, "uavcan.port.List was not published!"
 
