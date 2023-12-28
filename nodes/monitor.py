@@ -38,45 +38,24 @@ class Colors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def mode_value_to_string(value):
-    mapping = {
-        0 : "OPERATIONAL",
-        1 : f"{Colors.OKCYAN}INITIALIZATION{Colors.ENDC}",
-        2 : f"{Colors.HEADER}MAINTENANCE{Colors.ENDC}",
-        3 : f"{Colors.WARNING}SOFTWARE_UPDATE{Colors.ENDC}",
-    }
-    return mapping[value]
+class Colorizer:
+    @staticmethod
+    def normal(origin_string):
+        return origin_string
 
-def health_value_to_string(value):
-    mapping = {
-        0 : "NOMINAL (0)",
-        1 : f"{Colors.HEADER}ADVISORY (1){Colors.ENDC}",
-        2 : f"{Colors.WARNING}CAUTION (2){Colors.ENDC}",
-        3 : f"{Colors.FAIL}WARNING (3){Colors.ENDC}",
-    }
-    return mapping[value]
+    @staticmethod
+    def header(origin_string):
+        """Purple"""
+        return f"{Colors.HEADER}{origin_string}{Colors.ENDC}"
 
-def vssc_value_to_string(value):
-    bitmask = [
-        "cyphal",
-        "baro",
-        "gps",
-        "mag",
-        "crct",
-        "sys",
-    ]
+    @staticmethod
+    def warning(origin_string):
+        "Orange"
+        return f"{Colors.WARNING}{origin_string}{Colors.ENDC}"
 
-    errors = []
-    for number, bit_meaning in enumerate(bitmask):
-        if value & np.left_shift(1, number):
-            errors.append(bit_meaning)
-
-    if len(errors) > 0:
-        string = ", ".join(str(error) for error in errors)
-        string = f"{Colors.WARNING}{value}: ({string}){Colors.ENDC}"
-    else:
-        string = f"{value}"
-    return string
+    @staticmethod
+    def okcyan(origin_string):
+        return f"{Colors.OKCYAN}{origin_string}{Colors.ENDC}"
 
 async def getset_port_id(node_id, callback, def_id, reg_name, data_type):
     assert isinstance(def_id, int)
@@ -179,6 +158,8 @@ class GpsSatsSub(BaseSubscriber):
     def print_data(self):
         print(f"GNSS:")
         value = self.data.value if self.data is not None else None
+        if value == 0:
+            value = Colorizer.header(value) 
         print(f"- sats ({self.get_id_string()}): {value}")
         print(f"- lat:")
         print(f"- lon:")
@@ -219,8 +200,20 @@ class BaroTemperatureSub(BaseSubscriber):
     def print_data(self):
         print(f"- zubax.baro.temp ({self.get_id_string()}): {self.data.kelvin:.2f} Kelvin")
 
+class BaseMonitor:
+    def __init__(self) -> None:
+        pass
 
-class GpsMagBaroMonitor:
+    @staticmethod
+    def get_latest_sw_version() -> int:
+        return 0
+
+    @staticmethod
+    def get_vssc_meaning(vssc : int) -> str:
+        return f"{vssc} (meaning unknown)"
+
+
+class GpsMagBaroMonitor(BaseMonitor):
     def __init__(self, node_id) -> None:
         self.node_id = node_id
 
@@ -240,7 +233,33 @@ class GpsMagBaroMonitor:
         for sub in self.subs:
             sub.print_data()
 
-class UavLightsMonitor:
+    @staticmethod
+    def get_latest_sw_version() -> int:
+        return 0xc78d47c3c9744f55
+
+    def get_vssc_meaning(self, vssc: int) -> str:
+        bitmask = [
+            "cyphal",
+            "baro",
+            "gps",
+            "mag",
+            "crct",
+            "sys",
+        ]
+
+        errors = []
+        for number, bit_meaning in enumerate(bitmask):
+            if vssc & np.left_shift(1, number):
+                errors.append(bit_meaning)
+
+        if len(errors) > 0:
+            string = ", ".join(str(error) for error in errors)
+            string = f"{Colors.WARNING}{vssc}: ({string}){Colors.ENDC}"
+        else:
+            string = f"{vssc}"
+        return string
+
+class UavLightsMonitor(BaseMonitor):
     def __init__(self, node_id) -> None:
         self.node_id = node_id
 
@@ -265,7 +284,7 @@ class UavLightsMonitor:
         for sub in self.subs:
             sub.print_data()
 
-class RaccoonLabConfigurator:
+class RLConfigurator:
     def __init__(self) -> None:
         self.node_id = None
         self.heartbeat = uavcan.node.Heartbeat_1_0()
@@ -273,9 +292,9 @@ class RaccoonLabConfigurator:
     async def main(self):
         cyphal_node = await CyphalTools.get_node()
         heartbeat_sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
-        heartbeat_sub.receive_in_background(self.heartbeat_callback)
+        heartbeat_sub.receive_in_background(self._heartbeat_callback)
 
-        info, name, node = await self.find_node()
+        info, name, node_monitor = await self._find_node()
 
         await asyncio.sleep(0.1)
         while True:
@@ -286,7 +305,7 @@ class RaccoonLabConfigurator:
 
             print(f"- SW: ", end='')
             sw_version_string = f"v{info['sw_version'][0]}.{info['sw_version'][1]}_{hex(info['git_hash'])[2:]}"
-            if info['git_hash'] == 0x2369cc5265ad8492:
+            if info['git_hash'] == node_monitor.get_latest_sw_version():
                 print(f"{sw_version_string} (latest)")
             else:
                 print(f"{Colors.FAIL}{sw_version_string} (need update){Colors.ENDC}")
@@ -296,16 +315,16 @@ class RaccoonLabConfigurator:
 
 
             print(f"- ID: {self.node_id}")
-            print(f"- Health: {health_value_to_string(self.heartbeat.health.value)}")
-            print(f"- Mode: {mode_value_to_string(self.heartbeat.mode.value)}")
-            print(f"- VSSC: {vssc_value_to_string(self.heartbeat.vendor_specific_status_code)}")
+            print(f"- Health: {RLConfigurator._health_to_string(self.heartbeat.health.value)}")
+            print(f"- Mode: {RLConfigurator._mode_to_string(self.heartbeat.mode.value)}")
+            print(f"- VSSC: {node_monitor.get_vssc_meaning(self.heartbeat.vendor_specific_status_code)}")
 
             print(f"- UID: {info['uid']}")
             print(f"- Uptime: {self.heartbeat.uptime}")
-            await node.process()
+            await node_monitor.process()
             await asyncio.sleep(0.1)
 
-    async def find_node(self):
+    async def _find_node(self) -> BaseMonitor:
         # 1. Define node ID
         self.node_id = await CyphalTools.find_online_node(timeout=5.0)
         while self.node_id is None:
@@ -328,12 +347,36 @@ class RaccoonLabConfigurator:
         await node.init()
         return info, name, node
 
-    async def heartbeat_callback(self, data, transfer_from):
+    async def _heartbeat_callback(self, data, transfer_from):
         if self.node_id == transfer_from.source_node_id:
             self.heartbeat = data
 
+    @staticmethod
+    def _health_to_string(value : int) -> str:
+        assert isinstance(value, int)
+        mapping = {
+            0 : "NOMINAL (0)",
+            1 : f"{Colors.HEADER}ADVISORY (1){Colors.ENDC}",
+            2 : f"{Colors.WARNING}CAUTION (2){Colors.ENDC}",
+            3 : f"{Colors.FAIL}WARNING (3){Colors.ENDC}",
+        }
+        assert value in mapping
+        return mapping[value]
+
+    @staticmethod
+    def _mode_to_string(value : int) -> str:
+        assert isinstance(value, int)
+        mapping = {
+            0: "OPERATIONAL",
+            1: Colorizer.okcyan("INITIALIZATION"),
+            2: Colorizer.header("MAINTENANCE"),
+            3: Colorizer.warning("SOFTWARE_UPDATE"),
+        }
+
+        return mapping[value]
+
 if __name__ == "__main__":
-    rl_configurator = RaccoonLabConfigurator()
+    rl_configurator = RLConfigurator()
     try:
         asyncio.run(rl_configurator.main())
     except KeyboardInterrupt:
