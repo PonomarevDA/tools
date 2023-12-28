@@ -7,6 +7,7 @@ cyphal:
   mini: https://github.com/RaccoonlabDev/docs/releases/download/v1.5.10/mini_v2_cyphal_v1.5.10_112f1595.bin
   micro: https://github.com/RaccoonlabDev/docs/releases/download/v1.5.10/micro_cyphal_v1.5.10_112f1595.bin
   gnss_v2: https://github.com/RaccoonlabDev/docs/releases/download/v1.6.5/gnss_v2_cyphal_v1.6.5_c78d47c3.bin
+  lights: https://github.com/RaccoonlabDev/uav_lights_node/releases/download/v0.2.3/lights_v2_cyphal_v0.2.3_566e015d.bin
 
   gnss_v3: https://github.com/RaccoonlabDev/docs/releases/download/v1.5.4/gnss_v3_cyphal_v1.5.4_cb62980.bin
 

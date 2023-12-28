@@ -67,7 +67,14 @@ class CyphalTools:
 
         request = uavcan.node.GetInfo_1_0.Request()
         client = cyphal_node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
-        response = await client.call(request)
+        for attempt in range(3):
+            if attempt == 0:
+                print(f"NodeInfo: send request to {dest_node_id}")
+            else:
+                print(f"NodeInfo: send request to {dest_node_id} ({attempt + 1})")
+            response = await client.call(request)
+            if response is not None:
+                break
         client.close()
 
         if response is not None:
@@ -82,6 +89,7 @@ class CyphalTools:
                 'uid'        : uid
             }
         else:
+            print(f"Node {dest_node_id} has not respond to NodeInfo request.")
             res = None
         return res
 
