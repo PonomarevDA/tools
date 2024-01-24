@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# This software is distributed under the terms of the MIT License.
+# Copyright (c) 2023 Dmitry Ponomarev.
+# Author: Oleg Ostapovich
 """
 Script used to listen nodes connected to CAN interface using NodeStatus protocol,
 summarising it and storing data to csv

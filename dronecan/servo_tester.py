@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# This software is distributed under the terms of the MIT License.
+# Copyright (c) 2023 Dmitry Ponomarev.
+# Author: Oleg Ostapovich
 """
 This script sends RawMessage to node to test servo motor life.
 To run this script you must first create an slcan from the serial port with the specified name.
