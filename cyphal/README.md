@@ -53,7 +53,7 @@ For usage example without a real hardware you can also check the workflows:
 - [.github/workflows/specification_checker.yml](../.github/workflows/specification_checker.yml)
 
 
-## 2. specification_checker.py
+## 2. [specification_checker.py](specification_checker.py)
 
 The script follows the test cases in the table below:
 

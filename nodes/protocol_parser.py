@@ -53,11 +53,11 @@ class CanMessage:
         return self.msg.arbitration_id % 128
 
 class CanProtocolParser:
-    def __init__(self) -> None:
+    def __init__(self, channel='/dev/ttyACM0') -> None:
         self.protocol = Protocol.UNKNOWN
         self.node_id = None
 
-        with can.Bus(interface='slcan', channel='/dev/ttyACM0', ttyBaudrate=1000000, bitrate=1000000) as bus:
+        with can.Bus(interface='slcan', channel=channel, ttyBaudrate=1000000, bitrate=1000000) as bus:
             self.protocol = Protocol.UNKNOWN
             for _ in range(100):
                 msg = CanMessage(bus.recv())

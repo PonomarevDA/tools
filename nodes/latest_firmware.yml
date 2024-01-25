@@ -1,7 +1,7 @@
 dronecan:
   kirpi: /home/nex/software/binaries/dronecan/kirpi/v0.10.18-path1_edbb89d.bin
   mini: https://github.com/RaccoonlabDev/docs/releases/download/v0.13.0/mini_v2_dronecan_v0.13.0_27d18a2.bin
-  gnss_v2: "https://github.com/RaccoonlabDev/docs/releases/download/v0.12.2/gnss_v2.5_dronecan_v0.12.1_e0ba916.bin"
+  gnss_v2: https://github.com/RaccoonlabDev/docs/releases/download/v0.12.2/gnss_v2.5_dronecan_v0.12.1_e0ba916.bin
 
 cyphal:
   mini: https://github.com/RaccoonlabDev/docs/releases/download/v1.5.10/mini_v2_cyphal_v1.5.10_112f1595.bin
