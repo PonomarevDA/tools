@@ -1,4 +1,4 @@
-# Cyphal/DroneCAN nodes tools
+# Cyphal/DroneCAN nodes tools  [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=PonomarevDA_tools&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=PonomarevDA_tools) [![cyphal_init.sh](https://github.com/PonomarevDA/tools/actions/workflows/cyphal_init.yml/badge.svg)](https://github.com/PonomarevDA/tools/actions/workflows/cyphal_init.yml) [![specification_checker.py](https://github.com/PonomarevDA/tools/actions/workflows/specification_checker.yml/badge.svg)](https://github.com/PonomarevDA/tools/actions/workflows/specification_checker.yml)
 
 `tools` is a collection of bash and python scripts for testing and configuration of Cyphal/CAN and DroneCAN nodes.
 

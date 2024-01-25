@@ -2,10 +2,35 @@
 
 A few Cyphal related scripts are collected here.
 
+## Preparation
 
-## 1. cyphal/init.sh
+To start with Cyphal/CAN (pycyphal, yakut, yukon) we recommend configuring the following environment variables:
 
-The script automatically:
+| Environment variable | Meaning |
+| -------------------- | - |
+| CYPHAL_PATH          | Path to DSDL. Let's use the default:`$HOME/.cyphal` |
+| UAVCAN__NODE__ID     | The application node identifier |
+| UAVCAN__CAN__IFACE   | CAN iface name |
+| UAVCAN__CAN__BITRATE | Arbitration/data segment bits per second |
+| UAVCAN__CAN__MTU     | Maximum transmission unit: 8 for classic CAN |
+
+There are a few approaches here.
+
+If you have a CAN-sniffer ([RL CAN-sniffer](https://docs.raccoonlab.co/guide/programmer_sniffer/) or [Zubax Babel](https://zubax.com/products/babel)) and you want a simple connection to your device, the recommended cross-platform way is to use [Python-CAN](https://python-can.readthedocs.io/en/stable/) [CAN over Serial / SLCAN](https://python-can.readthedocs.io/en/stable/interfaces/slcan.html) interface.
+
+On Linux you can simply run the following script:
+
+```bash
+source cyphal/setup_linux_slcan.sh
+```
+
+On Windows you can try [setup.ps1](https://gist.github.com/sainquake/7f06a2425ee54178633eac60f9002608) script.
+
+If you have Linux, alternatively you can use [socketcan interface](https://python-can.readthedocs.io/en/stable/interfaces/socketcan.html). Unlike SLCAN, socketcan interface allows to share the same virtual CAN interface with multiple processes, so you run a few pycyphal scripts, yukon, yakut simultaniously.
+
+<details><summary>Click here for details how to use cyphal/init.sh script to setup CAN interface with socketcan on Linux</summary>
+
+cyphal/init.sh automatically:
 
 1. Create SLCAN based on CAN-sniffer or create virtual CAN inreface
 2. Configure environment variables if they are not already configured (`UAVCAN__CAN__IFACE`, `UAVCAN__CAN__MTU`, `UAVCAN__NODE__ID`, `YAKUT_PATH`)
@@ -52,8 +77,9 @@ For usage example without a real hardware you can also check the workflows:
 - [.github/workflows/cyphal_init.yml](../.github/workflows/cyphal_init.yml)
 - [.github/workflows/specification_checker.yml](../.github/workflows/specification_checker.yml)
 
+</details>
 
-## 2. [specification_checker.py](specification_checker.py)
+## [specification_checker.py](specification_checker.py)
 
 The script follows the test cases in the table below:
 
@@ -72,9 +98,13 @@ Assumptions for all nodes:
 
 Usage:
 
-```bash
-source cyphal/init.sh
-pytest cyphal/specification_checker.py --verbose
-```
+1. Set environment variables with `source cyphal/setup_linux_slcan.sh`, `source cyphal/init.sh` or any other way you want
+
+2. Run the script
+    ```bash
+    pytest cyphal/specification_checker.py --verbose
+    ```
+
+A usage example is demonstrated below:
 
 ![](https://github.com/PonomarevDA/tools/blob/docs/assets/cyphal/specification_checker.gif?raw=true)
