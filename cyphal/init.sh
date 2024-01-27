@@ -104,7 +104,7 @@ else
 fi
 
 
-# 2. Configure Yakut environment variables if they are not already configured
+# 2. Configure Cyphal environment variables if they are not already configured
 if [ -z ${UAVCAN__CAN__IFACE+x} ]; then
     export UAVCAN__CAN__IFACE="socketcan:$interface"
 fi
@@ -114,40 +114,11 @@ fi
 if [ -z ${UAVCAN__NODE__ID+x} ]; then
     export UAVCAN__NODE__ID="$node_id"
 fi
-if [ -z ${YAKUT_PATH+x} ]; then
-    export YAKUT_PATH="$REPOSITORY_PATH/build/nunavut_out"
+if [ -z ${CYPHAL_PATH+x} ]; then
+    export CYPHAL_PATH="$HOME/.cyphal/zubax_dsdl:$HOME/.cyphal/public_regulated_data_types/"
 fi
 echo "2. Yakut environment variables:
     export UAVCAN__CAN__IFACE=$UAVCAN__CAN__IFACE
     export UAVCAN__CAN__MTU=$UAVCAN__CAN__MTU
     export UAVCAN__NODE__ID=$UAVCAN__NODE__ID
-    export YAKUT_PATH=$YAKUT_PATH"
-
-
-# 3. Compile DSDL based on public regulated data types
-echo "3. Cyphal DSDL"
-YAKUT_COMPILE_OUTPUT="$YAKUT_PATH"
-if [ -z ${REG_DATA_TYPE_PATH+x} ]; then
-    REG_DATA_TYPE_PATH="$REPOSITORY_PATH/public_regulated_data_types/uavcan
-                        $REPOSITORY_PATH/public_regulated_data_types/reg
-                        $REPOSITORY_PATH/ds015"
-fi
-if [ -d $YAKUT_COMPILE_OUTPUT ] && [ "$(ls -A $YAKUT_COMPILE_OUTPUT)" ]; then
-    step_result_text="are already compiled"
-else
-    step_result_text="have been compiled"
-    dsdl_path_array=($REG_DATA_TYPE_PATH)
-    for dsdl_path in "${dsdl_path_array[@]}"; do
-        if [ ! -d "$dsdl_path" ]; then
-            log_error "$dsdl_path does not exist"
-            step_result_text="failed to be compiled"
-        fi
-    done
-
-    yakut compile $REG_DATA_TYPE_PATH -O $YAKUT_COMPILE_OUTPUT
-fi
-echo "DSDL $step_result_text in $YAKUT_COMPILE_OUTPUT from:"
-inputs=($REG_DATA_TYPE_PATH)
-for input in "${inputs[@]}"; do
-    echo "    $input"
-done
+    export CYPHAL_PATH=$CYPHAL_PATH"

@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 import asyncio
-import sys
 import time
-import pathlib
 import random
 import string
 import re
 import pytest
 
-# pylint: disable-next=wrong-import-position
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "build/nunavut_out"))
 import pycyphal.application
 # pylint: disable=import-error
 import uavcan.node
@@ -18,7 +14,7 @@ import uavcan.node.GetInfo_1_0
 import uavcan.node.port.List_1_0
 import uavcan.register
 import uavcan.register.List_1_0
-from utils import CyphalTools
+from utils import NodeFinder, RegisterInterface, PortRegisterInterface
 
 @pytest.fixture(autouse=True)
 async def run_around_tests():
@@ -38,6 +34,23 @@ def event_loop():
     yield loop
     loop.close()
 
+class GlobalCyphalNode:
+    cyphal_node = None
+
+    @staticmethod
+    def get_node() -> pycyphal.application._node.Node:
+        if GlobalCyphalNode.cyphal_node is not None:
+            return GlobalCyphalNode.cyphal_node
+
+        GlobalCyphalNode.cyphal_node = pycyphal.application.make_node(
+            uavcan.node.GetInfo_1_0.Response(
+                uavcan.node.Version_1_0(major=1, minor=0),
+                name="co.raccoonlab.spec_checker"
+        ))
+
+        GlobalCyphalNode.cyphal_node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
+        GlobalCyphalNode.cyphal_node.start()
+        return GlobalCyphalNode.cyphal_node
 
 
 @pytest.mark.asyncio
@@ -45,8 +58,9 @@ class TestNodeName:
     @staticmethod
     async def test_node_name():
         print("Node name must follow a specific pattern:")
-        cyphal_node = await CyphalTools.get_node()
-        dest_node_id = await CyphalTools.find_online_node()
+        cyphal_node = GlobalCyphalNode.get_node()
+        node_finder = NodeFinder(cyphal_node)
+        dest_node_id = await node_finder.find_online_node()
 
         request = uavcan.node.GetInfo_1_0.Request()
         client = cyphal_node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
@@ -55,7 +69,7 @@ class TestNodeName:
         assert response is not None, "The node has not respond on GetInfo request."
         print(f"- 1/2. The node has been respond on GetInfo request.")
 
-        name = CyphalTools.np_array_to_string(response[0].name)
+        name = "".join([chr(item) for item in response[0].name])
         assert TestNodeName._check_node_name(name), f"The node name '{name}' does not follow the node name pattern."
         print(f"- 2/2. The node '{name}' follows the node name pattern.")
 
@@ -72,8 +86,9 @@ class TestHearbeat:
     @staticmethod
     async def test_frequency(seconds: int = 5):
         print("Heartbeat frequency should be 1.0 Hz (check 5 seconds):")
-        cyphal_node = await CyphalTools.get_node()
-        dest_node_id = await CyphalTools.find_online_node()
+        cyphal_node = GlobalCyphalNode.get_node()
+        node_finder = NodeFinder(cyphal_node)
+        dest_node_id = await node_finder.find_online_node()
         sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
 
         timestamps = [time.time()]
@@ -99,14 +114,16 @@ class TestPersistentMemory():
     async def test_persistent_memory() -> None:
         print("TestPersistentMemory:")
 
-        tested_node_info = await CyphalTools.get_tested_node_info()
+        cyphal_node = GlobalCyphalNode.get_node()
+        node_finder = NodeFinder(cyphal_node)
+
+        tested_node_info = await node_finder.get_tested_node_info()
         dest_node_name = tested_node_info['name']
         if dest_node_name == 'org.opencyphal.yakut.monitor':
             print("Skip test because yakut doesn't support ExecuteCommand.")
             return
 
-        cyphal_node = await CyphalTools.get_node()
-        dest_node_id = await CyphalTools.find_online_node()
+        dest_node_id = await node_finder.find_online_node()
         register_name = "uavcan.node.description"
         random_test_value = ''.join(random.choices(string.ascii_lowercase, k=10))
         cmd_client = cyphal_node.make_client(uavcan.node.ExecuteCommand_1_1, dest_node_id)
@@ -119,7 +136,7 @@ class TestPersistentMemory():
         access_response = await access_client.call(set_request)
         access_client.close()
         assert access_response is not None, "Access retrive failed!"
-        value = CyphalTools.np_array_to_string(access_response[0].value.string.value)
+        value = "".join([chr(item) for item in access_response[0].value.string.value])
         assert value == random_test_value, f"1/4. Accees expected {random_test_value}, got {value}!"
         print(f"- 1/4. y r {dest_node_id} uavcan.node.description {random_test_value} # success")
 
@@ -143,7 +160,7 @@ class TestPersistentMemory():
         access_response = await access_client.call(set_request)
         access_client.close()
         assert access_response is not None, "4/4. Access retrive failed!"
-        value = CyphalTools.np_array_to_string(access_response[0].value.string.value)
+        value = "".join([chr(item) for item in access_response[0].value.string.value])
         assert value == random_test_value, f"4/4. Accees expects {random_test_value}, got {value}!"
         print(f"- 4/4. y r {dest_node_id} uavcan.node.description # success: {random_test_value}")
 
@@ -154,9 +171,12 @@ class TestPortList:
 
     @staticmethod
     async def test_port_list():
-        tested_node_info = await CyphalTools.get_tested_node_info()
+        cyphal_node = GlobalCyphalNode.get_node()
+        node_finder = NodeFinder(cyphal_node)
+
+        tested_node_info = await node_finder.get_tested_node_info()
         dest_node_name = tested_node_info['name']
-        port_list_msg = await CyphalTools.get_port_list()
+        port_list_msg = await node_finder.get_port_list()
         assert port_list_msg is not None, "uavcan.port.List was not published!"
 
         print(f"Check port.List of {dest_node_name}:")
@@ -179,8 +199,12 @@ class TestRegisters:
 
     @staticmethod
     async def test_registers_name():
-        dest_node_id = await CyphalTools.find_online_node()
-        register_names = await CyphalTools.register_list(dest_node_id)
+        cyphal_node = GlobalCyphalNode.get_node()
+        node_finder = NodeFinder(cyphal_node)
+
+        dest_node_id = await node_finder.find_online_node()
+        register_inrerface = RegisterInterface(GlobalCyphalNode.get_node())
+        register_names = await register_inrerface.register_list(dest_node_id)
         assert len(register_names) >= 2, "Node should have at least 2 registers!"
 
         print("Registers:")
@@ -194,8 +218,9 @@ class TestRegisters:
 
     @staticmethod
     async def test_default_registers_existance():
-        cyphal_node = await CyphalTools.get_node()
-        dest_node_id = await CyphalTools.find_online_node()
+        cyphal_node = GlobalCyphalNode.get_node()
+        node_finder = NodeFinder(cyphal_node)
+        dest_node_id = await node_finder.find_online_node()
 
         required_register_names = [
             "uavcan.node.id",
@@ -216,16 +241,18 @@ class TestRegisters:
 
     @staticmethod
     async def test_port_register_types():
-        cyphal_node = await CyphalTools.get_node()
-        dest_node_id = await CyphalTools.find_online_node()
-        all_register_names = await CyphalTools.register_list(dest_node_id)
+        cyphal_node = GlobalCyphalNode.get_node()
+        node_finder = NodeFinder(cyphal_node)
+        dest_node_id = await node_finder.find_online_node()
+        register_inrerface = RegisterInterface(GlobalCyphalNode.get_node())
+        all_register_names = await register_inrerface.register_list(dest_node_id)
 
         access_request = uavcan.register.Access_1_0.Request()
         access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
         
         print("Check port registers type:")
         for register_name in all_register_names:
-            port_type, port_reg_type = CyphalTools.get_port_type_by_register_name(register_name)
+            port_type, port_reg_type = PortRegisterInterface.get_port_type(register_name)
             if port_type is None or port_reg_type is None:
                 print(f"- {register_name :<30} skip")
                 continue

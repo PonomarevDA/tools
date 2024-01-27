@@ -19,10 +19,13 @@ jobs:
         with:
           path: 'repository'
 
-      - uses: actions/checkout@v3
-        with:
-          repository: OpenCyphal/public_regulated_data_types
-          path: 'repository/public_regulated_data_types'
+      - name: Run Cyphal node with ID 126 in background (Yakut Monitor)
+        run: |
+          mkdir -p /home/runner/.cyphal/zubax_dsdl
+          git clone https://github.com/Zubax/zubax_dsdl.git /home/runner/.cyphal/zubax_dsdl
+
+          mkdir -p /home/runner/.cyphal/public_regulated_data_types
+          git clone https://github.com/OpenCyphal/public_regulated_data_types.git /home/runner/.cyphal/public_regulated_data_types
 
       - name: Run Cyphal node with ID 126 in background (Yakut Monitor)
         run: |

@@ -1,72 +1,58 @@
 #!/usr/bin/env python3
-import sys
+# This software is distributed under the terms of the MIT License.
+# Copyright (c) 2023-2024 Dmitry Ponomarev.
+# Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
+
 import time
-import pathlib
 import asyncio
 import numpy as np
 
-# pylint: disable-next=wrong-import-position
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "build/nunavut_out"))
 import pycyphal.application
 # pylint: disable=import-error
 import uavcan.register.Access_1_0
+import uavcan.register.List_1_0
 
-class CyphalTools:
-    cyphal_node = None
 
-    @staticmethod
-    async def get_node():
-        if CyphalTools.cyphal_node is not None:
-            return CyphalTools.cyphal_node
+class NodeFinder:
+    """
+    This class performs a network scan for a target node and collects a basic information.
+    Possible target nodes id are [0, 126].
+    Node ID 127 is intentionally ignored because it is usually occupied by debugging tools.
+    """
+    target_node_id = None
+    black_list = [127]
 
-        software_version = uavcan.node.Version_1_0(major=1, minor=0)
-        node_info = uavcan.node.GetInfo_1_0.Response(
-            software_version,
-            name="co.raccoonlab.spec_checker"
-        )
-        try:
-            CyphalTools.cyphal_node = pycyphal.application.make_node(node_info)
-        except pycyphal.application._node_factory.MissingTransportConfigurationError:
-            print("MissingTransportConfigurationError: Available registers do not encode a valid transport configuration.")
-            print("Try `source cyphal/init.sh`.")
-            sys.exit(1)
-        except OSError:
-            print("OSError: [Errno 19] No such device.")
-            print("Try `source cyphal/init.sh`.")
-            sys.exit(1)
-        CyphalTools.cyphal_node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
-        CyphalTools.cyphal_node.start()
-        return CyphalTools.cyphal_node
+    def __init__(self, cyphal_node) -> None:
+        self.node = cyphal_node
 
-    @staticmethod
-    async def find_online_node(timeout : float = 1.1) -> int:
-        dest_node_id = None
-        cyphal_node = await CyphalTools.get_node()
+    async def find_online_node(self, timeout : float = 1.1) -> int:
+        assert isinstance(timeout, float)
 
+        if NodeFinder.target_node_id is not None:
+            return NodeFinder.target_node_id
+        
         time_left_sec = timeout
         start_time_sec = time.time()
-        sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
+        sub = self.node.make_subscriber(uavcan.node.Heartbeat_1_0)
         while time_left_sec > 0.0:
             time_left_sec = (start_time_sec + timeout) - time.time()
             transfer = await sub.receive_for(time_left_sec)
             if transfer is None:
                 break
             assert isinstance(transfer, tuple), f"Type is type(transfer) :("
-            if transfer[1].source_node_id != 127:
-                dest_node_id = transfer[1].source_node_id
+            if transfer[1].source_node_id not in NodeFinder.black_list:
+                NodeFinder.target_node_id = transfer[1].source_node_id
                 break
         sub.close()
 
-        return dest_node_id
+        return NodeFinder.target_node_id
 
-    @staticmethod
-    async def get_tested_node_info() -> dict:
+    async def get_tested_node_info(self) -> dict:
         """Return a dictionary on success. Otherwise return None."""
-        cyphal_node = await CyphalTools.get_node()
-        dest_node_id = await CyphalTools.find_online_node()
+        dest_node_id = await self.find_online_node()
 
         request = uavcan.node.GetInfo_1_0.Request()
-        client = cyphal_node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
+        client = self.node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
         for attempt in range(3):
             if attempt == 0:
                 print(f"NodeInfo: send request to {dest_node_id}")
@@ -82,7 +68,7 @@ class CyphalTools:
             uid_size = 12 if np.all(response.unique_id[12:] == 0) else 16
             uid = ''.join(format(x, '02X') for x in response.unique_id[0:uid_size])
             res = {
-                'name'       : CyphalTools.np_array_to_string(response.name),
+                'name'       : _np_array_to_string(response.name),
                 'hw_version' : (response.hardware_version.major, response.hardware_version.minor),
                 'sw_version' : (response.software_version.major, response.software_version.minor),
                 'git_hash'   : response.software_vcs_revision_id,
@@ -93,15 +79,13 @@ class CyphalTools:
             res = None
         return res
 
-    @staticmethod
-    async def get_port_list(timeout : float = 10.1) -> None:
-        cyphal_node = await CyphalTools.get_node()
-        dest_node_id = await CyphalTools.find_online_node()
+    async def get_port_list(self, timeout : float = 10.1) -> None:
+        dest_node_id = await self.find_online_node()
         msg = None
 
         time_left_sec = timeout
         start_time_sec = time.time()
-        sub = cyphal_node.make_subscriber(uavcan.node.port.List_1_0)
+        sub = self.node.make_subscriber(uavcan.node.port.List_1_0)
         while time_left_sec > 0.0:
             time_left_sec = (start_time_sec + timeout) - time.time()
             transfer = await sub.receive_for(time_left_sec)
@@ -115,71 +99,35 @@ class CyphalTools:
         assert isinstance(msg, uavcan.node.port.List_1_0)
         return msg
 
-    @staticmethod
-    def get_port_type_by_register_name(reg : str):
-        assert isinstance(reg, str)
-        port_type = None
-        port_reg_type = None
 
-        if reg.startswith("uavcan.pub"):
-            port_type = 'pub'
-        elif reg.startswith("uavcan.sub"):
-            port_type = 'sub'
-        elif reg.startswith("uavcan.cln"):
-            port_type = 'cln'
-        elif reg.startswith("uavcan.srv"):
-            port_type = 'srv'
+class RegisterInterface:
+    """
+    This class simplifies the operations with Cyphal registers.
+    It basically just a wrapper under:
+    - uavcan.register.Access_1_0
+    - uavcan.register.List_1_0
+    """
 
-        if reg.endswith(".id"):
-            port_reg_type = "id"
-        elif reg.endswith(".type"):
-            port_reg_type = "type"
+    def __init__(self, cyphal_node) -> None:
+        self.node = cyphal_node
 
-        return port_type, port_reg_type
-
-    @staticmethod
-    async def get_port_id_reg_value(dest_node_id : int, register_name : str) -> int:
+    async def register_list(self, dest_node_id : int, max_register_amount=256) -> list:
+        """
+        List registers available on the specified remote node.
+        Simplied version of `yakut register-list`.
+        Return a list of strings with names of all avaliable registers.
+        """
         assert isinstance(dest_node_id, int)
-        assert isinstance(register_name, str)
-        cyphal_node = await CyphalTools.get_node()
-
-        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
-
-        access_request = uavcan.register.Access_1_0.Request()
-        access_request.name.name = register_name
-
-        access_response = await access_client.call(access_request)
-        if access_response is None:
-            return None # request is not supported or node is not online
-
-        if access_response[0].value.empty is not None:
-            return None # register is not exist
-
-        if access_response[0].value.natural16 is None:
-            return None # register is not pord.id
-
-        return int(access_response[0].value.natural16.value[0])
-
-    @staticmethod
-    def np_array_to_string(np_array : np.ndarray) -> str:
-        assert isinstance(np_array, np.ndarray)
-        return "".join([chr(item) for item in np_array])
-
-    @staticmethod
-    async def register_list(dest_node_id : int, max_register_amount=256):
-        """List registers available on the specified remote node(s)."""
-        assert isinstance(dest_node_id, int)
-        cyphal_node = await CyphalTools.get_node()
 
         register_names = []
         list_request = uavcan.register.List_1_0.Request()
-        list_client = cyphal_node.make_client(uavcan.register.List_1_0, dest_node_id)
+        list_client = self.node.make_client(uavcan.register.List_1_0, dest_node_id)
         for _ in range(max_register_amount):
             list_response = await list_client.call(list_request)
             if list_response is None:
                 return None
 
-            register_name = CyphalTools.np_array_to_string(list_response[0].name.name)
+            register_name = _np_array_to_string(list_response[0].name.name)
             if len(register_name) == 0:
                 break
 
@@ -188,3 +136,81 @@ class CyphalTools:
             list_request.index += 1
 
         return register_names
+
+    async def register_acess(self, dest_node_id : int, register_name : str, value=None) -> list:
+        """
+        Read or modify a register on a remote node.
+        Simplied version of `yakut register-access`.
+        Return None or uavcan.register.Value_1_0.
+        """
+        assert isinstance(dest_node_id, int)
+        assert isinstance(register_name, str)
+        client = self.node.make_client(uavcan.register.Access_1_0, dest_node_id)
+        request = uavcan.register.Access_1_0.Request(name=uavcan.register.Name_1_0(register_name))
+        if value is not None:
+            request.value = value
+
+        response = await client.call(request)
+        if response is None:
+            return None # request is not supported or the node is offline
+
+        return response[0].value
+
+
+class PortRegisterInterface:
+    """
+    This class simplifies port identifier reading and configuration
+    """
+    def __init__(self, cyphal_node) -> None:
+        self.node = cyphal_node
+        self.registers = RegisterInterface(self.node)
+
+    async def get_id(self, dest_node_id : int, port_register_name : str) -> int:
+        assert isinstance(dest_node_id, int)
+        assert isinstance(port_register_name, str)
+
+        value = await self.registers.register_acess(dest_node_id, port_register_name)
+
+        if port_register_name is None or value.natural16 is None:
+            return None
+
+        return int(value.natural16.value[0])
+
+    async def set_id(self, dest_node_id : int, port_register_name : str, value : int) -> int:
+        assert isinstance(dest_node_id, int)
+        assert isinstance(port_register_name, str)
+
+        set_value = uavcan.register.Value_1_0(natural16=value)
+        read_value = await self.registers.register_acess(dest_node_id, port_register_name, set_value)
+
+        if port_register_name is None or read_value.natural16 is None:
+            return None
+
+        return int(read_value.natural16.value[0])
+
+    @staticmethod
+    def get_port_type(port_register_name : str):
+        assert isinstance(port_register_name, str)
+        port_type = None
+        port_reg_type = None
+
+        if port_register_name.startswith("uavcan.pub"):
+            port_type = 'pub'
+        elif port_register_name.startswith("uavcan.sub"):
+            port_type = 'sub'
+        elif port_register_name.startswith("uavcan.cln"):
+            port_type = 'cln'
+        elif port_register_name.startswith("uavcan.srv"):
+            port_type = 'srv'
+
+        if port_register_name.endswith(".id"):
+            port_reg_type = "id"
+        elif port_register_name.endswith(".type"):
+            port_reg_type = "type"
+
+        return port_type, port_reg_type
+
+
+def _np_array_to_string(np_array : np.ndarray) -> str:
+    assert isinstance(np_array, np.ndarray)
+    return "".join([chr(item) for item in np_array])

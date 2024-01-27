@@ -19,14 +19,17 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: OpenCyphal/public_regulated_data_types
-          path: 'repository/public_regulated_data_types'
+          path: '.cyphal/public_regulated_data_types'
 
-      - name: Create VCAN and compile DSDL 
-        run: |
-          source repository/cyphal/init.sh --interface slcan0 --node-id 127 -v
+      - uses: actions/checkout@v3
+        with:
+          repository: Zubax/zubax_dsdl
+          path: '.cyphal/zubax_dsdl'
 
       - name: Check Yakut result 
         run: |
+          pwd
+          ls -l
           source repository/cyphal/init.sh -i slcan0 -n 127 -v
           timeout --verbose --preserve-status 3 y mon > yakut_output.txt || true
           cat yakut_output.txt
