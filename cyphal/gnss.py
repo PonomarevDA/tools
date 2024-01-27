@@ -1,27 +1,24 @@
 #!/usr/bin/env python3
 import asyncio
-import sys
-import pathlib
 import datetime
 import random
 
-# pylint: disable-next=wrong-import-position
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "build/nunavut_out"))
 import pycyphal.application
 # pylint: disable=import-error
 import uavcan.node
 import ds015.service.gnss.Gnss_0_1
-from utils import CyphalTools
+from utils import RegisterInterface, PortRegisterInterface
 
 
 class TimeWeekChecker:
     def __init__(self, cyphal_node, dest_node_id):
         self._node = cyphal_node
         self._dest_node_id = dest_node_id
+        self._port_interface = PortRegisterInterface(self._node)
 
     async def run(self):
         reg_name = "uavcan.pub.ds015.gps.gnss.id"
-        gnss_port_id = await CyphalTools.get_port_id_reg_value(self._dest_node_id, reg_name)
+        gnss_port_id = await self._port_interface.get_id(self._dest_node_id, reg_name)
         if gnss_port_id == 65535:
             print(f"GNSS port {reg_name} is disabled. ")
             print(f"Type `y r {self._dest_node_id} {reg_name} <port_id>`")
@@ -94,14 +91,16 @@ async def main(dest_node_id):
 
     # await TimeWeekChecker(cyphal_node, dest_node_id).run()
 
+    register_inrerface = RegisterInterface(cyphal_node)
+    port_interface = PortRegisterInterface(cyphal_node)
 
     access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
-    register_names = await CyphalTools.register_list(dest_node_id)
+    register_names = await register_inrerface.register_list(dest_node_id)
     occupied_port_id = set()
     for reg_name in register_names:
         if not reg_name.startswith("uavcan.") or not reg_name.endswith(".id"):
             continue
-        port_id = await CyphalTools.get_port_id_reg_value(dest_node_id, reg_name)
+        port_id = await port_interface.get_id(dest_node_id, reg_name)
         occupied_port_id.add(port_id)
         if port_id == 65535:
             free_port_id = random_integer(occupied_port_id)

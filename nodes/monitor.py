@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# This software is distributed under the terms of the MIT License.
+# Copyright (c) 2023-2024 Dmitry Ponomarev.
+# Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
+
 import os
 import sys
 import time
@@ -28,7 +32,9 @@ import reg.udral.physics.optics.HighColor_0_1
 import reg.udral.service.actuator.common.sp.Vector31_0_1
 import reg.udral.service.common.Readiness_0_1
 
-from utils import CyphalTools
+import pycyphal.application
+
+from utils import NodeFinder, PortRegisterInterface
 
 class Colors:
     HEADER = '\033[95m'
@@ -65,50 +71,17 @@ class Colorizer:
         return f"{Colors.OKGREEN}{origin_string}{Colors.ENDC}"
 
 
-async def getset_port_id(node_id, callback, def_id, reg_name, data_type):
-    assert isinstance(def_id, int)
-    print(node_id, def_id, reg_name, data_type)
-    cyphal_node = await CyphalTools.get_node()
-    access_client = cyphal_node.make_client(uavcan.register.Access_1_0, node_id)
-
-    id = await CyphalTools.get_port_id_reg_value(node_id, reg_name)
-    if id is None:
-        id = await CyphalTools.get_port_id_reg_value(node_id, reg_name)
-
-    assert id is not None, f"{reg_name} is not exist"
-    need_update = (id == 0) or (id > 8191)
-
-    if need_update:
-        set_request = uavcan.register.Access_1_0.Request()
-        set_request.name.name = reg_name
-        set_request.value.natural16 = uavcan.primitive.array.Natural16_1_0(def_id)
-        await access_client.call(set_request)
-        id = def_id
-    assert isinstance(id, int), reg_name
-    mag_sub = cyphal_node.make_subscriber(data_type, id)
-    mag_sub.receive_in_background(callback)
-    access_client.close()
-
-    return id, need_update
-
 class HighColorPub:
-    def __init__(self, node_id) -> None:
+    def __init__(self, node, node_id) -> None:
+        self.node = node
         self.node_id = node_id
         self.msg = reg.udral.physics.optics.HighColor_0_1()
         self.red = int(0)
         self.green = int(0)
         self.blue = int(0)
     async def init(self):
-        cyphal_node = await CyphalTools.get_node()
-        self._pub = cyphal_node.make_publisher(reg.udral.physics.optics.HighColor_0_1, 2107)
+        self._pub = self.node.make_publisher(reg.udral.physics.optics.HighColor_0_1, 2107)
         self._pub_counter = 0
-        # self._id, self.id_updated = await getset_port_id(
-        #     self.node_id,
-        #     self.callback,
-        #     def_id=self.def_id,
-        #     reg_name=self.reg_name,
-        #     data_type=self.data_type
-        # )
     async def process_publisher(self):
         self.red += random.randint(0,1)
         self.green += random.randint(0,2)
@@ -124,7 +97,8 @@ class HighColorPub:
 
 
 class BaseSubscriber:
-    def __init__(self, node_id, def_id, reg_name, data_type) -> None:
+    def __init__(self, node, node_id, def_id, reg_name, data_type) -> None:
+        self.node = node
         self.data = None
         self._id = None
         self.id_updated = False
@@ -132,14 +106,17 @@ class BaseSubscriber:
         self.def_id = def_id
         self.reg_name = reg_name
         self.data_type = data_type
+        self.port_interface = PortRegisterInterface(self.node)
     async def init(self):
-        self._id, self.id_updated = await getset_port_id(
-            self.node_id,
-            self.callback,
-            def_id=self.def_id,
-            reg_name=self.reg_name,
-            data_type=self.data_type
-        )
+        self._id = await self.port_interface.get_id(self.node_id, self.reg_name)
+        assert self._id is not None, f"{self.reg_name} is not exist"
+        self.id_updated = (self._id == 0) or (self._id > 8191)
+
+        if self.id_updated:
+            self._id = self.port_interface.set_id(self.node_id, self.reg_name, self.def_id)
+        assert isinstance(self._id, int), self.reg_name
+        self.sub = self.node.make_subscriber(self.data_type, self._id).receive_in_background(self.callback)
+
     async def callback(self, data, transfer_from):
         self.data = data
         self._transfer_from = transfer_from
@@ -152,8 +129,8 @@ class BaseSubscriber:
         return string
 
 class CircuitStatusTemperatureSub(BaseSubscriber):
-    def __init__(self, node_id, def_id=2102, reg_name="uavcan.pub.crct.temp.id") -> None:
-        super().__init__(node_id, def_id, reg_name, uavcan.si.sample.temperature.Scalar_1_0)
+    def __init__(self, node, node_id, def_id=2102, reg_name="uavcan.pub.crct.temp.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.temperature.Scalar_1_0)
     def print_data(self):
         print("CircuitStatus:")
         if self.data is not None:
@@ -165,8 +142,8 @@ class CircuitStatusTemperatureSub(BaseSubscriber):
         print(f"- crct.temp ({self.get_id_string()}): {kelvin} Kelvin ({celcius} Celcius)")
 
 class GpsSatsSub(BaseSubscriber):
-    def __init__(self, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.sats.id") -> None:
-        super().__init__(node_id, def_id, reg_name, uavcan.primitive.scalar.Integer16_1_0)
+    def __init__(self, node, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.sats.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, uavcan.primitive.scalar.Integer16_1_0)
     def print_data(self):
         print(f"GNSS:")
         value = self.data.value if self.data is not None else None
@@ -177,15 +154,15 @@ class GpsSatsSub(BaseSubscriber):
         print(f"- lon:")
 
 class GpsTimeUtcSub(BaseSubscriber):
-    def __init__(self, node_id, def_id=2002, reg_name="uavcan.pub.gps.time_utc.id") -> None:
-        super().__init__(node_id, def_id, reg_name, uavcan.time.SynchronizedTimestamp_1_0)
+    def __init__(self, node, node_id, def_id=2002, reg_name="uavcan.pub.gps.time_utc.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, uavcan.time.SynchronizedTimestamp_1_0)
     def print_data(self):
         seconds = int(self.data.microsecond / 1000000) if self.data is not None else 0
         print(f"- time_utc ({self.get_id_string()}): {seconds} ({datetime.datetime.fromtimestamp(seconds)})")
 
 class MagnetometerSub(BaseSubscriber):
-    def __init__(self, node_id, def_id=2000, reg_name="uavcan.pub.zubax.mag.id") -> None:
-        super().__init__(node_id, def_id, reg_name, uavcan.si.sample.magnetic_field_strength.Vector3_1_1)
+    def __init__(self, node, node_id, def_id=2000, reg_name="uavcan.pub.zubax.mag.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.magnetic_field_strength.Vector3_1_1)
         self.data = None
     def print_data(self):
         if self.data is not None:
@@ -199,22 +176,22 @@ class MagnetometerSub(BaseSubscriber):
             print(f"Magnetometer ({self.get_id_string()}) : {Colors.WARNING}NO DATA{Colors.ENDC}")
 
 class BaroPressureSub(BaseSubscriber):
-    def __init__(self, node_id, def_id=2100, reg_name="uavcan.pub.zubax.baro.press.id") -> None:
-        super().__init__(node_id, def_id, reg_name, uavcan.si.sample.pressure.Scalar_1_0)
+    def __init__(self, node, node_id, def_id=2100, reg_name="uavcan.pub.zubax.baro.press.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.pressure.Scalar_1_0)
     def print_data(self):
         print("Barometer:")
         value = self.data.pascal if self.data is not None else 0.0
         print(f"- zubax.baro.press ({self.get_id_string()}): {value:.2f} Pascal")
 
 class BaroTemperatureSub(BaseSubscriber):
-    def __init__(self, node_id, def_id=2101, reg_name="uavcan.pub.zubax.baro.temp.id") -> None:
-        super().__init__(node_id, def_id, reg_name, uavcan.si.sample.temperature.Scalar_1_0)
+    def __init__(self, node, node_id, def_id=2101, reg_name="uavcan.pub.zubax.baro.temp.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.temperature.Scalar_1_0)
     def print_data(self):
         print(f"- zubax.baro.temp ({self.get_id_string()}): {self.data.kelvin:.2f} Kelvin")
 
 class SetpointSub(BaseSubscriber):
-    def __init__(self, node_id, def_id=2342, reg_name="uavcan.pub.udral.esc.0.id") -> None:
-        super().__init__(node_id, def_id, reg_name, reg.udral.service.actuator.common.sp.Vector31_0_1)
+    def __init__(self, node, node_id, def_id=2342, reg_name="uavcan.pub.udral.esc.0.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, reg.udral.service.actuator.common.sp.Vector31_0_1)
         self.max_recv_length = 0
     def print_data(self):
         for idx in range(30, self.max_recv_length - 1, -1):
@@ -226,8 +203,8 @@ class SetpointSub(BaseSubscriber):
         print(f"- udral.esc.0 ({self.get_id_string()}): {self.data.value[0:self.max_recv_length]}")
 
 class ReadinessSub(BaseSubscriber):
-    def __init__(self, node_id, def_id=2343, reg_name="uavcan.pub.udral.readiness.0.id") -> None:
-        super().__init__(node_id, def_id, reg_name, reg.udral.service.common.Readiness_0_1)
+    def __init__(self, node, node_id, def_id=2343, reg_name="uavcan.pub.udral.readiness.0.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, reg.udral.service.common.Readiness_0_1)
         self.max_recv_length = 0
     def print_data(self):
         mapping = {
@@ -240,9 +217,10 @@ class ReadinessSub(BaseSubscriber):
         print(f"- udral.readiness.0 ({self.get_id_string()}): {value} ({mapping[value]})")
 
 class BaseMonitor:
-    def __init__(self) -> None:
+    def __init__(self, node) -> None:
         self.subs = []
         self.pubs = []
+        self.node = node
 
     async def init(self):
         for sub in self.subs:
@@ -266,15 +244,16 @@ class BaseMonitor:
 
 
 class GpsMagBaroMonitor(BaseMonitor):
-    def __init__(self, node_id) -> None:
+    def __init__(self, node, node_id) -> None:
+        super().__init__(node)
         self.node_id = node_id
 
         self.subs = [
-            GpsSatsSub(node_id),
-            GpsTimeUtcSub(node_id),
-            MagnetometerSub(node_id),
-            BaroPressureSub(node_id),
-            BaroTemperatureSub(node_id)
+            GpsSatsSub(node, node_id),
+            GpsTimeUtcSub(node, node_id),
+            MagnetometerSub(node, node_id),
+            BaroPressureSub(node, node_id),
+            BaroTemperatureSub(node, node_id)
         ]
 
     @staticmethod
@@ -304,24 +283,25 @@ class GpsMagBaroMonitor(BaseMonitor):
         return string
 
 class UavLightsMonitor(BaseMonitor):
-    def __init__(self, node_id) -> None:
+    def __init__(self, node, node_id) -> None:
+        super().__init__(node)
         self.node_id = node_id
 
         self.subs = [
-            CircuitStatusTemperatureSub(node_id),
+            CircuitStatusTemperatureSub(node, node_id),
         ]
 
         self.pubs = [
-            HighColorPub(node_id),
+            HighColorPub(node, node_id),
         ]
 
 class PX4Monitor(BaseMonitor):
-    def __init__(self, node_id) -> None:
-        super().__init__()
+    def __init__(self, node, node_id) -> None:
+        super().__init__(node)
         self.node_id = node_id
         self.subs = [
-            SetpointSub(node_id),
-            ReadinessSub(node_id),
+            SetpointSub(node, node_id),
+            ReadinessSub(node, node_id),
         ]
 
 
@@ -331,8 +311,14 @@ class RLConfigurator:
         self.heartbeat = uavcan.node.Heartbeat_1_0()
 
     async def main(self):
-        cyphal_node = await CyphalTools.get_node()
-        heartbeat_sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
+        self.node = pycyphal.application.make_node(uavcan.node.GetInfo_1_0.Response(
+                uavcan.node.Version_1_0(major=1, minor=0),
+                name="co.raccoonlab.spec_checker"
+        ))
+        self.node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
+        self.node.start()
+
+        heartbeat_sub = self.node.make_subscriber(uavcan.node.Heartbeat_1_0)
         heartbeat_sub.receive_in_background(self._heartbeat_callback)
 
         info, name, node_monitor = await self._find_node()
@@ -369,23 +355,23 @@ class RLConfigurator:
 
     async def _find_node(self) -> BaseMonitor:
         # 1. Define node ID
-        self.node_id = await CyphalTools.find_online_node(timeout=5.0)
+        node_finder = NodeFinder(self.node)
+        self.node_id = await node_finder.find_online_node(timeout=5.0)
         while self.node_id is None:
-            self.node_id = await CyphalTools.find_online_node(timeout=5.0)
-        print(f"Node with ID={self.node_id} has been found.")
+            self.node_id = await node_finder.find_online_node(timeout=5.0)
 
         # 2. Define node name
-        info = await CyphalTools.get_tested_node_info()
+        info = await node_finder.get_tested_node_info()
         name = info['name']
         if name == 'co.raccoonlab.gps_mag_baro':
             print(f"Node `{name}` has been found.")
-            node = GpsMagBaroMonitor(self.node_id)
+            node = GpsMagBaroMonitor(self.node, self.node_id)
         elif name == 'co.raccoonlab.lights':
             print(f"Node `{name}` has been found.")
-            node = UavLightsMonitor(self.node_id)
+            node = UavLightsMonitor(self.node, self.node_id)
         elif name == 'PX4_FMU_V5':
             print(f"Node `{name}` has been found.")
-            node = PX4Monitor(self.node_id)
+            node = PX4Monitor(self.node, self.node_id)
         else:
             print(f"Unknown node `{name}` has been found. Exit")
             sys.exit(0)
