@@ -8,12 +8,7 @@ import pytest
 
 import pycyphal.application
 # pylint: disable=import-error
-import uavcan.node
-import uavcan.node.Heartbeat_1_0
-import uavcan.node.GetInfo_1_0
-import uavcan.node.port.List_1_0
-import uavcan.register
-import uavcan.register.List_1_0
+import uavcan
 from utils import NodeFinder, RegisterInterface, PortRegisterInterface
 
 @pytest.fixture(autouse=True)
@@ -34,6 +29,7 @@ def event_loop():
     yield loop
     loop.close()
 
+
 class GlobalCyphalNode:
     cyphal_node = None
 
@@ -51,6 +47,34 @@ class GlobalCyphalNode:
         GlobalCyphalNode.cyphal_node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
         GlobalCyphalNode.cyphal_node.start()
         return GlobalCyphalNode.cyphal_node
+
+@pytest.mark.asyncio
+class TestNodeHeartbeat:
+    """5.3.2 Node heartbeat"""
+
+    @staticmethod
+    async def test_frequency():
+        print("Heartbeat frequency should be 1.0 Hz (check 5 seconds):")
+        cyphal_node = GlobalCyphalNode.get_node()
+        dest_node_id = await NodeFinder(cyphal_node).find_online_node()
+        sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
+
+        timestamps = []
+
+        time_left = 5.5
+        end_time = time.time() + time_left
+        while time_left > 0:
+            transfer_from = await sub.receive_for(time_left)
+            if transfer_from is not None and transfer_from[1].source_node_id == dest_node_id:
+                timestamps.append(time.time())
+            time_left = end_time - time.time()
+
+        assert len(timestamps) >= 5
+
+        timestamps = timestamps[-5:]
+        periods = [timestamps[idx+1] - timestamps[idx] for idx in range(len(timestamps) - 1)]
+        for number in periods:
+            assert pytest.approx(1.0, abs=0.05) == number
 
 
 @pytest.mark.asyncio
@@ -77,33 +101,6 @@ class TestNodeName:
     def _check_node_name(node_name):
         pattern = r'^[a-z0-9_\-]+(\.[a-z0-9_\-]+)+$'
         return re.match(pattern, node_name) is not None
-
-
-@pytest.mark.asyncio
-class TestHearbeat:
-    """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/node/7509.Heartbeat.1.0.dsdl"""
-
-    @staticmethod
-    async def test_frequency(seconds: int = 5):
-        print("Heartbeat frequency should be 1.0 Hz (check 5 seconds):")
-        cyphal_node = GlobalCyphalNode.get_node()
-        node_finder = NodeFinder(cyphal_node)
-        dest_node_id = await node_finder.find_online_node()
-        sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
-
-        timestamps = [time.time()]
-
-        while len(timestamps) < seconds + 2:
-            transfer_from = await sub.receive_for(1.1)
-            crnt_time_sec = time.time()
-            elapsed_time = crnt_time_sec - timestamps[-1]
-            assert elapsed_time <= 1.1, f"Heartbeat has not been appeared for {elapsed_time :.3f} seconds already."
-
-            if transfer_from[1].source_node_id == dest_node_id:
-                if len(timestamps) != 1:
-                    print(f"- {len(timestamps) - 1}/{seconds}. {elapsed_time :.3f} seconds after previous Heartbeat.")
-                    assert elapsed_time >= 0.9, f"Heartbeat has been appeared too erly: {elapsed_time :.3f} seconds."
-                timestamps.append(crnt_time_sec)
 
 
 @pytest.mark.asyncio
@@ -203,7 +200,7 @@ class TestRegisters:
         node_finder = NodeFinder(cyphal_node)
 
         dest_node_id = await node_finder.find_online_node()
-        register_inrerface = RegisterInterface(GlobalCyphalNode.get_node())
+        register_inrerface = RegisterInterface(cyphal_node)
         register_names = await register_inrerface.register_list(dest_node_id)
         assert len(register_names) >= 2, "Node should have at least 2 registers!"
 
@@ -244,7 +241,7 @@ class TestRegisters:
         cyphal_node = GlobalCyphalNode.get_node()
         node_finder = NodeFinder(cyphal_node)
         dest_node_id = await node_finder.find_online_node()
-        register_inrerface = RegisterInterface(GlobalCyphalNode.get_node())
+        register_inrerface = RegisterInterface(cyphal_node)
         all_register_names = await register_inrerface.register_list(dest_node_id)
 
         access_request = uavcan.register.Access_1_0.Request()
@@ -279,12 +276,12 @@ class TestRegisters:
 
 async def main():
     print("Cyphal specification checker:")
+    await TestNodeHeartbeat.test_frequency()
     await TestRegisters.test_registers_name()
     await TestRegisters.test_default_registers_existance()
     await TestRegisters.test_port_register_types()
     await TestPortList.test_port_list()
     await TestPersistentMemory.test_persistent_memory()
-    await TestHearbeat.test_frequency()
     await TestNodeName.test_node_name()
 
 def run_cyphal_standard_checker():
