@@ -40,6 +40,9 @@ def event_loop():
 
 
 class GlobalCyphalNode:
+    """
+    Let's create a Cyphal node once and reuse it for all tests.
+    """
     cyphal_node = None
 
     @staticmethod
@@ -56,6 +59,7 @@ class GlobalCyphalNode:
         GlobalCyphalNode.cyphal_node.heartbeat_publisher.mode = uavcan.node.Mode_1_0.OPERATIONAL
         GlobalCyphalNode.cyphal_node.start()
         return GlobalCyphalNode.cyphal_node
+
 
 @pytest.mark.asyncio
 class TestNodeHeartbeat:
@@ -133,7 +137,7 @@ class TestGenericNodeInformation:
 
     @staticmethod
     async def test_software_version():
-        """Softwarte version field should be filled."""
+        """Software version field should be filled."""
         get_info = await TestGenericNodeInformation._get_info()
         software_version = get_info.software_version
         assert not (software_version.major == 0 and software_version.minor == 0)
@@ -259,6 +263,7 @@ class TestGenericNodeCommands():
 class TestRegisterInterface:
     """5.3.10. Register interface"""
     register_list = []
+    access_client = None
 
     @staticmethod
     async def test_registers_name():
@@ -281,71 +286,56 @@ class TestRegisterInterface:
     @staticmethod
     async def test_default_registers_existance():
         """A few registers must be implemented in any node"""
-        REQUIRED_REGISTERS = [
+        required_registers = [
             "uavcan.node.id",
             "uavcan.node.description",
         ]
 
         register_list = await TestRegisterInterface._collect_register_list()
-        assert all(required_register in register_list for required_register in REQUIRED_REGISTERS)
-
+        assert all(required_register in register_list for required_register in required_registers)
 
     @staticmethod
-    async def test_port_register_types():
-        cyphal_node = GlobalCyphalNode.get_node()
-        dest_node_id = await NodeFinder(cyphal_node).find_online_node()
-        register_interface = RegisterInterface(cyphal_node)
-        register_list = await register_interface.register_list(dest_node_id)
+    async def test_port_id_register():
+        """
+        Publication/subscription/client/server port-ID .id registers has the name pattern:
+        uavcan.PORT_TYPE.PORT_NAME.id
+        Check that they are:
+        - natural16[1],
+        - mutable,
+        - persistent,
+        - the default value is 65535.
+        """
+        register_list = await TestRegisterInterface._collect_register_list()
 
-        access_request = uavcan.register.Access_1_0.Request()
-        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
-
-        print("Check port registers type:")
         for register_name in register_list:
-            port_type, port_reg_type = PortRegisterInterface.get_port_type(register_name)
-            if port_type is None or port_reg_type is None:
-                print(f"- {register_name :<30} skip")
-                continue
-
-            access_request.name.name = register_name
-            access_response = await access_client.call(access_request)
-
-            assert access_response is not None
-
-            access_response = access_response[0]
-            if port_reg_type == "id":
-                assert access_response.value.natural16 is not None, f"- {register_name} should have natural16 type, but it is not"
-                assert access_response._mutable and access_response.persistent, f"- {register_name} should be mutable and persistent, but it is {access_response}"
-                print(f"- {register_name :<30} is natural16, mutable and persistent.")
-            elif port_reg_type == "type":
-                assert access_response.value.string is not None, f"- {register_name} should have string type, but it is not"
-                assert access_response._mutable is False and access_response.persistent is True, f"- {register_name} should be immutable and persistent, but it is {access_response}"
-                print(f"- {register_name :<30} is string, immutable and persistent")
+            if PortRegisterInterface.is_port_id(register_name):
+                access_response = await TestRegisterInterface._register_access(register_name)
+                assert access_response.value.natural16 is not None
+                assert access_response._mutable  # pylint: disable=protected-access
+                assert access_response.persistent
 
     @staticmethod
-    def _check_register_name(register_name):
-        pattern = r'^[a-z][a-z0-9._]*(\.[a-z0-9._]+)+$'
-        return re.match(pattern, register_name) is not None
+    async def test_port_type_register():
+        """
+        Publication/subscription/client/server port-ID .type registers has the name pattern:
+        uavcan.PORT_TYPE.PORT_NAME.type
+        Check that they are:
+        - string,
+        - immutable,
+        - persistent.
+        """
+        register_list = await TestRegisterInterface._collect_register_list()
 
-    @staticmethod
-    async def _collect_register_list() -> list:
-        if len(TestRegisterInterface.register_list) != 0:
-            return TestRegisterInterface.register_list
-
-        cyphal_node = GlobalCyphalNode.get_node()
-        dest_node_id = await NodeFinder(cyphal_node).find_online_node()
-        register_names = await RegisterInterface(cyphal_node).register_list(dest_node_id)
-        assert len(register_names) >= 2, "Node should have at least 2 registers!"
-        TestRegisterInterface.register_list = register_names
-        return TestRegisterInterface.register_list
-
-
-@pytest.mark.asyncio
-class TestPersistentMemory():
-    """Persistent memory check: 1. set random, 2. save, 3. reboot, 4. get"""
+        for register_name in register_list:
+            if PortRegisterInterface.is_port_type(register_name):
+                access_response = await TestRegisterInterface._register_access(register_name)
+                assert access_response.value.string is not None
+                assert not access_response._mutable  # pylint: disable=protected-access
+                assert access_response.persistent
 
     @staticmethod
     async def test_persistent_memory() -> None:
+        """Persistent memory check: 1. set random, 2. save, 3. reboot, 4. get"""
         print("TestPersistentMemory:")
 
         cyphal_node = GlobalCyphalNode.get_node()
@@ -398,6 +388,39 @@ class TestPersistentMemory():
         assert value == random_test_value, f"4/4. Accees expects {random_test_value}, got {value}!"
         print(f"- 4/4. y r {dest_node_id} uavcan.node.description # success: {random_test_value}")
 
+    @staticmethod
+    async def _register_access(register_name, value=None):
+        if TestRegisterInterface.access_client is None:
+            cyphal_node = GlobalCyphalNode.get_node()
+            dest_node_id = await NodeFinder(cyphal_node).find_online_node()
+            access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
+            TestRegisterInterface.access_client = access_client
+
+        access_request = uavcan.register.Access_1_0.Request()
+        access_request.name.name = register_name
+        access_response = await TestRegisterInterface.access_client.call(access_request)
+        assert access_response is not None
+        access_response = access_response[0]
+        return access_response
+
+
+    @staticmethod
+    def _check_register_name(register_name):
+        pattern = r'^[a-z][a-z0-9._]*(\.[a-z0-9._]+)+$'
+        return re.match(pattern, register_name) is not None
+
+    @staticmethod
+    async def _collect_register_list() -> list:
+        if len(TestRegisterInterface.register_list) != 0:
+            return TestRegisterInterface.register_list
+
+        cyphal_node = GlobalCyphalNode.get_node()
+        dest_node_id = await NodeFinder(cyphal_node).find_online_node()
+        register_names = await RegisterInterface(cyphal_node).register_list(dest_node_id)
+        assert len(register_names) >= 2, "Node should have at least 2 registers!"
+        TestRegisterInterface.register_list = register_names
+        return TestRegisterInterface.register_list
+
 
 async def main():
     print("Cyphal specification checker:")
@@ -417,8 +440,8 @@ async def main():
 
     await TestRegisterInterface.test_registers_name()
     await TestRegisterInterface.test_default_registers_existance()
-    await TestRegisterInterface.test_port_register_types()
-    await TestPersistentMemory.test_persistent_memory()
+    await TestRegisterInterface.test_port_id_register()
+    await TestRegisterInterface.test_persistent_memory()
 
 def run_cyphal_standard_checker():
     asyncio.run(main())
