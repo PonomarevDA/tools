@@ -50,41 +50,53 @@ class GlobalCyphalNode:
 
 @pytest.mark.asyncio
 class TestNodeHeartbeat:
-    """5.3.2 Node heartbeat"""
+    """5.3.2 Node heartbeat (uavcan.node.Heartbeat)"""
 
     @staticmethod
-    async def test_frequency():
+    async def test_frequency_and_uptime():
+        """
+        1. A node must publish Heartbeat with constant frequency 1 Hz
+        2. The node expected to be restarted during the test, so the uptime should not be decreased
+
+        Let's collect Heartbeat of the target node for 5.5 seconds and check last 5 of them.
+        """
         print("Heartbeat frequency should be 1.0 Hz (check 5 seconds):")
         cyphal_node = GlobalCyphalNode.get_node()
         dest_node_id = await NodeFinder(cyphal_node).find_online_node()
         sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
-
         timestamps = []
+        uptimes = []
 
+        # Collect data
         time_left = 5.5
         end_time = time.time() + time_left
         while time_left > 0:
             transfer_from = await sub.receive_for(time_left)
             if transfer_from is not None and transfer_from[1].source_node_id == dest_node_id:
                 timestamps.append(time.time())
+                uptimes.append(transfer_from[0].uptime)
             time_left = end_time - time.time()
 
+        # 1. Check timestamps
         assert len(timestamps) >= 5
-
         timestamps = timestamps[-5:]
         periods = [timestamps[idx+1] - timestamps[idx] for idx in range(len(timestamps) - 1)]
         for number in periods:
             assert pytest.approx(1.0, abs=0.05) == number
+        
+        # 2. Check uptimes
+        assert len(uptimes) >= 5
+        assert (uptimes[-1] - uptimes[-5]) == 4
 
 
 @pytest.mark.asyncio
-class TestNodeName:
+class TestGenericNodeInformation:
+    """5.3.3. Generic node information (uavcan.node.GetInfo)"""
     @staticmethod
     async def test_node_name():
         print("Node name must follow a specific pattern:")
         cyphal_node = GlobalCyphalNode.get_node()
-        node_finder = NodeFinder(cyphal_node)
-        dest_node_id = await node_finder.find_online_node()
+        dest_node_id = await NodeFinder(cyphal_node).find_online_node()
 
         request = uavcan.node.GetInfo_1_0.Request()
         client = cyphal_node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
@@ -94,7 +106,7 @@ class TestNodeName:
         print(f"- 1/2. The node has been respond on GetInfo request.")
 
         name = "".join([chr(item) for item in response[0].name])
-        assert TestNodeName._check_node_name(name), f"The node name '{name}' does not follow the node name pattern."
+        assert TestGenericNodeInformation._check_node_name(name), f"The node name '{name}' does not follow the node name pattern."
         print(f"- 2/2. The node '{name}' follows the node name pattern.")
 
     @staticmethod
@@ -276,13 +288,13 @@ class TestRegisters:
 
 async def main():
     print("Cyphal specification checker:")
-    await TestNodeHeartbeat.test_frequency()
+    await TestNodeHeartbeat.test_frequency_and_uptime()
     await TestRegisters.test_registers_name()
     await TestRegisters.test_default_registers_existance()
     await TestRegisters.test_port_register_types()
     await TestPortList.test_port_list()
     await TestPersistentMemory.test_persistent_memory()
-    await TestNodeName.test_node_name()
+    await TestGenericNodeInformation.test_node_name()
 
 def run_cyphal_standard_checker():
     asyncio.run(main())
