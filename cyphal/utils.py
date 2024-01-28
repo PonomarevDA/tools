@@ -79,7 +79,7 @@ class NodeFinder:
             res = None
         return res
 
-    async def get_port_list(self, timeout : float = 10.1) -> None:
+    async def get_port_list(self, timeout : float = 10.1) -> uavcan.node.port.List_1_0:
         dest_node_id = await self.find_online_node()
         msg = None
 
