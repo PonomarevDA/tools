@@ -51,42 +51,53 @@ class GlobalCyphalNode:
 @pytest.mark.asyncio
 class TestNodeHeartbeat:
     """5.3.2 Node heartbeat (uavcan.node.Heartbeat)"""
+    timestamps = []
+    uptimes = []
+    data_collected = False
 
     @staticmethod
-    async def test_frequency_and_uptime():
-        """
-        1. A node must publish Heartbeat with constant frequency 1 Hz
-        2. The node expected to be restarted during the test, so the uptime should not be decreased
+    async def test_frequency():
+        """A node must publish Heartbeat with constant frequency 1 Hz"""
+        await TestNodeHeartbeat._collect_heartbeats()
 
-        Let's collect Heartbeat of the target node for 5.5 seconds and check last 5 of them.
-        """
-        print("Heartbeat frequency should be 1.0 Hz (check 5 seconds):")
+        for idx in range(len(TestNodeHeartbeat.timestamps) - 1):
+            period = TestNodeHeartbeat.timestamps[idx+1] - TestNodeHeartbeat.timestamps[idx]
+            assert pytest.approx(1.0, abs=0.05) == period
+
+    @staticmethod
+    async def test_uptime():
+        """The node is not expected to be restarted during the test, check uptime"""
+        await TestNodeHeartbeat._collect_heartbeats()
+
+        assert (TestNodeHeartbeat.uptimes[-1] - TestNodeHeartbeat.uptimes[0]) == 4
+
+    @staticmethod
+    async def _collect_heartbeats():
+        """ Let's collect Heartbeat of the target node for 5.5 seconds and check last 5 of them"""
+        if TestNodeHeartbeat.data_collected:
+            return
+
         cyphal_node = GlobalCyphalNode.get_node()
         dest_node_id = await NodeFinder(cyphal_node).find_online_node()
         sub = cyphal_node.make_subscriber(uavcan.node.Heartbeat_1_0)
-        timestamps = []
-        uptimes = []
+        TestNodeHeartbeat.timestamps = []
+        TestNodeHeartbeat.uptimes = []
 
-        # Collect data
         time_left = 5.5
         end_time = time.time() + time_left
         while time_left > 0:
             transfer_from = await sub.receive_for(time_left)
             if transfer_from is not None and transfer_from[1].source_node_id == dest_node_id:
-                timestamps.append(time.time())
-                uptimes.append(transfer_from[0].uptime)
+                TestNodeHeartbeat.timestamps.append(time.time())
+                TestNodeHeartbeat.uptimes.append(transfer_from[0].uptime)
             time_left = end_time - time.time()
+        sub.close()
 
-        # 1. Check timestamps
-        assert len(timestamps) >= 5
-        timestamps = timestamps[-5:]
-        periods = [timestamps[idx+1] - timestamps[idx] for idx in range(len(timestamps) - 1)]
-        for number in periods:
-            assert pytest.approx(1.0, abs=0.05) == number
-        
-        # 2. Check uptimes
-        assert len(uptimes) >= 5
-        assert (uptimes[-1] - uptimes[-5]) == 4
+        assert len(TestNodeHeartbeat.timestamps) >= 5
+        assert len(TestNodeHeartbeat.uptimes) >= 5
+        TestNodeHeartbeat.timestamps = TestNodeHeartbeat.timestamps[-5:]
+        TestNodeHeartbeat.uptimes = TestNodeHeartbeat.uptimes[-5:]
+        TestNodeHeartbeat.data_collected = True
 
 
 @pytest.mark.asyncio
@@ -288,7 +299,8 @@ class TestRegisters:
 
 async def main():
     print("Cyphal specification checker:")
-    await TestNodeHeartbeat.test_frequency_and_uptime()
+    await TestNodeHeartbeat.test_frequency()
+    await TestNodeHeartbeat.test_uptime()
     await TestRegisters.test_registers_name()
     await TestRegisters.test_default_registers_existance()
     await TestRegisters.test_port_register_types()
