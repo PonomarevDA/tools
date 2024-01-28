@@ -7,7 +7,6 @@ import time
 import asyncio
 import numpy as np
 
-import pycyphal.application
 # pylint: disable=import-error
 import uavcan.register.Access_1_0
 import uavcan.register.List_1_0
@@ -30,7 +29,7 @@ class NodeFinder:
 
         if NodeFinder.target_node_id is not None:
             return NodeFinder.target_node_id
-        
+
         time_left_sec = timeout
         start_time_sec = time.time()
         sub = self.node.make_subscriber(uavcan.node.Heartbeat_1_0)
@@ -39,7 +38,7 @@ class NodeFinder:
             transfer = await sub.receive_for(time_left_sec)
             if transfer is None:
                 break
-            assert isinstance(transfer, tuple), f"Type is type(transfer) :("
+            assert isinstance(transfer, tuple), "Type is type(transfer) :("
             if transfer[1].source_node_id not in NodeFinder.black_list:
                 NodeFinder.target_node_id = transfer[1].source_node_id
                 break
@@ -165,25 +164,25 @@ class PortRegisterInterface:
         self.node = cyphal_node
         self.registers = RegisterInterface(self.node)
 
-    async def get_id(self, dest_node_id : int, port_register_name : str) -> int:
+    async def get_id(self, dest_node_id : int, register_name : str) -> int:
         assert isinstance(dest_node_id, int)
-        assert isinstance(port_register_name, str)
+        assert isinstance(register_name, str)
 
-        value = await self.registers.register_acess(dest_node_id, port_register_name)
+        value = await self.registers.register_acess(dest_node_id, register_name)
 
-        if port_register_name is None or value.natural16 is None:
+        if register_name is None or value.natural16 is None:
             return None
 
         return int(value.natural16.value[0])
 
-    async def set_id(self, dest_node_id : int, port_register_name : str, value : int) -> int:
+    async def set_id(self, dest_node_id : int, register_name : str, value : int) -> int:
         assert isinstance(dest_node_id, int)
-        assert isinstance(port_register_name, str)
+        assert isinstance(register_name, str)
 
         set_value = uavcan.register.Value_1_0(natural16=value)
-        read_value = await self.registers.register_acess(dest_node_id, port_register_name, set_value)
+        read_value = await self.registers.register_acess(dest_node_id, register_name, set_value)
 
-        if port_register_name is None or read_value.natural16 is None:
+        if register_name is None or read_value.natural16 is None:
             return None
 
         return int(read_value.natural16.value[0])
@@ -224,6 +223,25 @@ class PortRegisterInterface:
 
         return port_type, port_reg_type
 
+
+class NodeCommander:
+    """
+    Wrapper under ExecuteCommand
+    """
+    def __init__(self, cyphal_node, dest_node_id) -> None:
+        self.node = cyphal_node
+        self.cmd_client = None
+        self.dest_node_id = dest_node_id
+        self.cmd_client = self.node.make_client(uavcan.node.ExecuteCommand_1_1, dest_node_id)
+
+    async def store_persistent_states(self):
+        save_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65530)
+        cmd_response = await self.cmd_client.call(save_request)
+        assert cmd_response is not None
+
+    async def restart(self):
+        save_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65535)
+        await self.cmd_client.call(save_request)
 
 def _np_array_to_string(np_array : np.ndarray) -> str:
     assert isinstance(np_array, np.ndarray)

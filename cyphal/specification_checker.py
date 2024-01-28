@@ -13,7 +13,7 @@ import pycyphal.application
 # pylint: disable=import-error
 import uavcan
 import uavcan.node.port.List_1_0
-from utils import NodeFinder, RegisterInterface, PortRegisterInterface
+from utils import NodeFinder, RegisterInterface, PortRegisterInterface, NodeCommander
 
 # We are going to ignore a few checks for the given nodes:
 DEBUGGING_TOOLS_NAME = [
@@ -335,58 +335,36 @@ class TestRegisterInterface:
 
     @staticmethod
     async def test_persistent_memory() -> None:
-        """Persistent memory check: 1. set random, 2. save, 3. reboot, 4. get"""
-        print("TestPersistentMemory:")
-
+        """
+        Persistent memory check:
+        1. set random string parameter to uavcan.node.description (it must exist anyway),
+        2. save all parameters to the persistent memory,
+        3. reboot the target node,
+        4. get uavcan.node.description value
+        """
         cyphal_node = GlobalCyphalNode.get_node()
         node_finder = NodeFinder(cyphal_node)
+        dest_node_id = await node_finder.find_online_node()
+        commander = NodeCommander(cyphal_node, dest_node_id)
+        register = "uavcan.node.description"
+        random_string = ''.join(random.choices(string.ascii_lowercase, k=10))
+        random_value = uavcan.primitive.String_1_0(random_string)
 
         tested_node_info = await node_finder.get_tested_node_info()
-        dest_node_name = tested_node_info['name']
-        if dest_node_name in DEBUGGING_TOOLS_NAME:
-            print("Skip test because yakut doesn't support ExecuteCommand.")
+        if tested_node_info['name'] in DEBUGGING_TOOLS_NAME:
             return
 
-        dest_node_id = await node_finder.find_online_node()
-        register_name = "uavcan.node.description"
-        random_test_value = ''.join(random.choices(string.ascii_lowercase, k=10))
-        cmd_client = cyphal_node.make_client(uavcan.node.ExecuteCommand_1_1, dest_node_id)
-        cmd_client.close()
+        access_response = await TestRegisterInterface._register_access(register, random_value)
+        value = "".join([chr(item) for item in access_response.value.string.value])
+        assert value == random_string
 
-        set_request = uavcan.register.Access_1_0.Request()
-        set_request.name.name = register_name
-        set_request.value.string = uavcan.primitive.String_1_0(random_test_value)
-        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
-        access_response = await access_client.call(set_request)
-        access_client.close()
-        assert access_response is not None, "Access retrive failed!"
-        value = "".join([chr(item) for item in access_response[0].value.string.value])
-        assert value == random_test_value, f"1/4. Accees expected {random_test_value}, got {value}!"
-        print(f"- 1/4. y r {dest_node_id} uavcan.node.description {random_test_value} # success")
+        await commander.store_persistent_states()
 
-        save_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65530)
-        cmd_client = cyphal_node.make_client(uavcan.node.ExecuteCommand_1_1, dest_node_id)
-        cmd_response = await cmd_client.call(save_request)
-        cmd_client.close()
-        assert cmd_response is not None, "2/4. ExecuteCommand retrive failed!"
-        print(f"- 2/4. y r {dest_node_id} 65530 # success")
+        await commander.restart()
 
-        reboot_request = uavcan.node.ExecuteCommand_1_1.Request(command = 65535)
-        cmd_client = cyphal_node.make_client(uavcan.node.ExecuteCommand_1_1, dest_node_id)
-        await cmd_client.call(reboot_request)
-        cmd_client.close()
-        assert cmd_response is not None, "2/4. ExecuteCommand retrive failed!"
-        print(f"- 3/4. y r {dest_node_id} 65535 # success")
-
-        get_request = uavcan.register.Access_1_0.Request()
-        get_request.name.name = register_name
-        access_client = cyphal_node.make_client(uavcan.register.Access_1_0, dest_node_id)
-        access_response = await access_client.call(set_request)
-        access_client.close()
-        assert access_response is not None, "4/4. Access retrive failed!"
-        value = "".join([chr(item) for item in access_response[0].value.string.value])
-        assert value == random_test_value, f"4/4. Accees expects {random_test_value}, got {value}!"
-        print(f"- 4/4. y r {dest_node_id} uavcan.node.description # success: {random_test_value}")
+        access_response = await TestRegisterInterface._register_access(register)
+        value = "".join([chr(item) for item in access_response.value.string.value])
+        assert value == random_string
 
     @staticmethod
     async def _register_access(register_name, value=None):
@@ -398,6 +376,10 @@ class TestRegisterInterface:
 
         access_request = uavcan.register.Access_1_0.Request()
         access_request.name.name = register_name
+
+        if isinstance(value, uavcan.primitive.String_1_0):
+            access_request.value.string = value
+
         access_response = await TestRegisterInterface.access_client.call(access_request)
         assert access_response is not None
         access_response = access_response[0]
@@ -422,33 +404,6 @@ class TestRegisterInterface:
         return TestRegisterInterface.register_list
 
 
-async def main():
-    print("Cyphal specification checker:")
-    await TestNodeHeartbeat.test_frequency()
-    await TestNodeHeartbeat.test_uptime()
-
-    await TestGenericNodeInformation.test_protocol_version()
-    await TestGenericNodeInformation.test_hardware_version()
-    await TestGenericNodeInformation.test_software_version()
-    await TestGenericNodeInformation.test_software_vcs_revision_id()
-    await TestGenericNodeInformation.test_unique_id()
-    await TestGenericNodeInformation.test_node_name()
-
-    await TestBusDataFlowMonitoring.test_reigister_interface_is_supported()
-    await TestBusDataFlowMonitoring.test_get_info_is_supported()
-    await TestBusDataFlowMonitoring.test_execute_command_is_supported()
-
-    await TestRegisterInterface.test_registers_name()
-    await TestRegisterInterface.test_default_registers_existance()
-    await TestRegisterInterface.test_port_id_register()
-    await TestRegisterInterface.test_persistent_memory()
-
-def run_cyphal_standard_checker():
-    asyncio.run(main())
-
-
 if __name__ == "__main__":
-    from argparse import ArgumentParser
-    parser = ArgumentParser(description='Cyphal specification checker')
-    args = parser.parse_args()
-    run_cyphal_standard_checker()
+    import os
+    print(f"Try: `pytest cyphal/{os.path.basename(__file__)} -v`")
