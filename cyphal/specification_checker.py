@@ -12,6 +12,7 @@ import pytest
 import pycyphal.application
 # pylint: disable=import-error
 import uavcan
+import uavcan.node.port.List_1_0
 from utils import NodeFinder, RegisterInterface, PortRegisterInterface
 
 # We are going to ignore a few checks for the given nodes:
@@ -126,7 +127,7 @@ class TestGenericNodeInformation:
         """Hardware version field should be filled."""
         get_info = await TestGenericNodeInformation._get_info()
         name = "".join([chr(item) for item in get_info.name])
-        if not name in DEBUGGING_TOOLS_NAME:
+        if name not in DEBUGGING_TOOLS_NAME:
             hardware_version = get_info.hardware_version
             assert not (hardware_version.major == 0 and hardware_version.minor == 0)
 
@@ -142,7 +143,7 @@ class TestGenericNodeInformation:
         """Software VSC field should be filled."""
         get_info = await TestGenericNodeInformation._get_info()
         name = "".join([chr(item) for item in get_info.name])
-        if not name in DEBUGGING_TOOLS_NAME:
+        if name not in DEBUGGING_TOOLS_NAME:
             assert get_info.software_vcs_revision_id != 0
 
     @staticmethod
@@ -188,7 +189,6 @@ class TestGenericNodeInformation:
 
     @staticmethod
     async def _get_info() -> uavcan.node.GetInfo_1_0.Response:
-        """ Let's collect Heartbeat of the target node for 5.5 seconds and check last 5 of them"""
         if TestGenericNodeInformation.data_collected:
             return TestGenericNodeInformation.get_info_response
 
@@ -204,6 +204,49 @@ class TestGenericNodeInformation:
         TestGenericNodeInformation.data_collected = True
         return TestGenericNodeInformation.get_info_response
 
+
+@pytest.mark.asyncio
+class TestBusDataFlowMonitoring:
+    """5.3.4. Bus data flow monitoring (uavcan.node.port)"""
+    data_collected = False
+    dest_node_name = ""
+    port_list = uavcan.node.port.List_1_0()
+
+    @staticmethod
+    async def test_reigister_interface_is_supported():
+        port_list = await TestBusDataFlowMonitoring._collect_port_list()
+        assert port_list.servers.mask[384], "register.Access is not supported"
+        assert port_list.servers.mask[385], "register.List is not supported"
+
+    @staticmethod
+    async def test_get_info_is_supported():
+        port_list = await TestBusDataFlowMonitoring._collect_port_list()
+        assert port_list.servers.mask[430], "GetInfo is not supported"
+
+    @staticmethod
+    async def test_execute_command_is_supported():
+        port_list = await TestBusDataFlowMonitoring._collect_port_list()
+        dest_node_name = TestBusDataFlowMonitoring.dest_node_name
+        if dest_node_name not in DEBUGGING_TOOLS_NAME:
+            assert port_list.servers.mask[435], "ExecuteCommand is not supported"
+
+    @staticmethod
+    async def _collect_port_list() -> uavcan.node.port.List_1_0:
+        if TestBusDataFlowMonitoring.data_collected:
+            return TestBusDataFlowMonitoring.port_list
+
+        cyphal_node = GlobalCyphalNode.get_node()
+        node_finder = NodeFinder(cyphal_node)
+
+        tested_node_info = await node_finder.get_tested_node_info()
+        TestBusDataFlowMonitoring.dest_node_name = tested_node_info['name']
+
+        port_list = await node_finder.get_port_list()
+        assert port_list is not None, "uavcan.port.List was not published!"
+        TestBusDataFlowMonitoring.port_list = port_list
+
+        TestBusDataFlowMonitoring.data_collected = True
+        return TestBusDataFlowMonitoring.port_list
 
 @pytest.mark.asyncio
 class TestPersistentMemory():
@@ -262,34 +305,6 @@ class TestPersistentMemory():
         value = "".join([chr(item) for item in access_response[0].value.string.value])
         assert value == random_test_value, f"4/4. Accees expects {random_test_value}, got {value}!"
         print(f"- 4/4. y r {dest_node_id} uavcan.node.description # success: {random_test_value}")
-
-
-@pytest.mark.asyncio
-class TestPortList:
-    """https://github.com/OpenCyphal/public_regulated_data_types/blob/master/uavcan/node/port/7510.List.1.0.dsdl"""
-
-    @staticmethod
-    async def test_port_list():
-        cyphal_node = GlobalCyphalNode.get_node()
-        node_finder = NodeFinder(cyphal_node)
-
-        tested_node_info = await node_finder.get_tested_node_info()
-        dest_node_name = tested_node_info['name']
-        port_list_msg = await node_finder.get_port_list()
-        assert port_list_msg is not None, "uavcan.port.List was not published!"
-
-        print(f"Check port.List of {dest_node_name}:")
-        print(f"- register.Access {port_list_msg.servers.mask[384]}")
-        print(f"- register.List   {port_list_msg.servers.mask[385]}")
-        print(f"- GetInfo         {port_list_msg.servers.mask[430]}")
-        if not dest_node_name in DEBUGGING_TOOLS_NAME:
-            print(f"- ExecuteCommand  {port_list_msg.servers.mask[435]}")
-
-        assert port_list_msg.servers.mask[384], "register.Access is not supported"
-        assert port_list_msg.servers.mask[385], "register.List is not supported"
-        assert port_list_msg.servers.mask[430], "GetInfo is not supported"
-        if not dest_node_name in DEBUGGING_TOOLS_NAME:
-            assert port_list_msg.servers.mask[435], "ExecuteCommand is not supported"
 
 
 @pytest.mark.asyncio
@@ -388,10 +403,13 @@ async def main():
     await TestGenericNodeInformation.test_unique_id()
     await TestGenericNodeInformation.test_node_name()
 
+    await TestBusDataFlowMonitoring.test_reigister_interface_is_supported()
+    await TestBusDataFlowMonitoring.test_get_info_is_supported()
+    await TestBusDataFlowMonitoring.test_execute_command_is_supported()
+
     await TestRegisters.test_registers_name()
     await TestRegisters.test_default_registers_existance()
     await TestRegisters.test_port_register_types()
-    await TestPortList.test_port_list()
     await TestPersistentMemory.test_persistent_memory()
 
 def run_cyphal_standard_checker():
