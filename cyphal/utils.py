@@ -189,6 +189,20 @@ class PortRegisterInterface:
         return int(read_value.natural16.value[0])
 
     @staticmethod
+    def is_port_id(register : str):
+        assert isinstance(register, str)
+        start_ok = register.startswith(("uavcan.pub", "uavcan.sub", "uavcan.cln", "uavcan.srv"))
+        end_ok = register.endswith(".id")
+        return start_ok and end_ok
+
+    @staticmethod
+    def is_port_type(register : str):
+        assert isinstance(register, str)
+        start_ok = register.startswith(("uavcan.pub", "uavcan.sub", "uavcan.cln", "uavcan.srv"))
+        end_ok = register.endswith(".type")
+        return start_ok and end_ok
+
+    @staticmethod
     def get_port_type(port_register_name : str):
         assert isinstance(port_register_name, str)
         port_type = None
