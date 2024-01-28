@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# This software is distributed under the terms of the MIT License.
+# Copyright (c) 2023-2024 Dmitry Ponomarev.
+# Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 import asyncio
 import time
 import random
@@ -10,6 +13,11 @@ import pycyphal.application
 # pylint: disable=import-error
 import uavcan
 from utils import NodeFinder, RegisterInterface, PortRegisterInterface
+
+# We are going to ignore a few checks for the given nodes:
+DEBUGGING_TOOLS_NAME = [
+    'org.opencyphal.yakut.monitor',
+]
 
 @pytest.fixture(autouse=True)
 async def run_around_tests():
@@ -103,27 +111,98 @@ class TestNodeHeartbeat:
 @pytest.mark.asyncio
 class TestGenericNodeInformation:
     """5.3.3. Generic node information (uavcan.node.GetInfo)"""
+    data_collected = False
+    get_info_response = uavcan.node.GetInfo_1_0.Response()
+
+    @staticmethod
+    async def test_protocol_version():
+        """The Protocol version field should be filled in."""
+        get_info = await TestGenericNodeInformation._get_info()
+        protocol_version = get_info.protocol_version
+        assert not (protocol_version.major == 0 and protocol_version.minor == 0)
+
+    @staticmethod
+    async def test_hardware_version():
+        """Hardware version field should be filled."""
+        get_info = await TestGenericNodeInformation._get_info()
+        name = "".join([chr(item) for item in get_info.name])
+        if not name in DEBUGGING_TOOLS_NAME:
+            hardware_version = get_info.hardware_version
+            assert not (hardware_version.major == 0 and hardware_version.minor == 0)
+
+    @staticmethod
+    async def test_software_version():
+        """Softwarte version field should be filled."""
+        get_info = await TestGenericNodeInformation._get_info()
+        software_version = get_info.software_version
+        assert not (software_version.major == 0 and software_version.minor == 0)
+
+    @staticmethod
+    async def test_software_vcs_revision_id():
+        """Software VSC field should be filled."""
+        get_info = await TestGenericNodeInformation._get_info()
+        name = "".join([chr(item) for item in get_info.name])
+        if not name in DEBUGGING_TOOLS_NAME:
+            assert get_info.software_vcs_revision_id != 0
+
+    @staticmethod
+    async def test_unique_id():
+        """Software UID field should be filled."""
+        get_info = await TestGenericNodeInformation._get_info()
+        unique_id_is_valid = any(byte != 0 for byte in get_info.unique_id)
+        assert unique_id_is_valid
+
+    @staticmethod
+    @pytest.mark.skip(reason="not yet")
+    async def test_software_image_crc():
+        """Software Image CRC field should be filled."""
+        get_info = await TestGenericNodeInformation._get_info()
+        software_image_crc_is_valid = any(byte != 0 for byte in get_info.software_image_crc)
+        assert software_image_crc_is_valid
+
+    @staticmethod
+    @pytest.mark.skip(reason="not yet")
+    async def test_certificate_of_authenticity():
+        """he certificate of authenticity (COA) field should be filled."""
+        get_info = await TestGenericNodeInformation._get_info()
+        coa = get_info.certificate_of_authenticity
+        coa_is_valid = any(byte != 0 for byte in coa)
+        assert coa_is_valid
+
     @staticmethod
     async def test_node_name():
-        print("Node name must follow a specific pattern:")
+        """
+        Node name pattern: com.manufacturer.project.product
+        Examples of correct names:
+        - org.opencyphal.yakut.monitor
+        - co.raccoonlab.gps_mag_baro
+        """
+        get_info_response = await TestGenericNodeInformation._get_info()
+        name = "".join([chr(item) for item in get_info_response.name])
+        assert TestGenericNodeInformation._check_node_name(name), name
+
+    @staticmethod
+    def _check_node_name(node_name : str) -> bool:
+        pattern = r'^[a-z0-9_\-]+(\.[a-z0-9_\-]+)+$'
+        return re.match(pattern, node_name) is not None
+
+    @staticmethod
+    async def _get_info() -> uavcan.node.GetInfo_1_0.Response:
+        """ Let's collect Heartbeat of the target node for 5.5 seconds and check last 5 of them"""
+        if TestGenericNodeInformation.data_collected:
+            return TestGenericNodeInformation.get_info_response
+
         cyphal_node = GlobalCyphalNode.get_node()
         dest_node_id = await NodeFinder(cyphal_node).find_online_node()
 
-        request = uavcan.node.GetInfo_1_0.Request()
         client = cyphal_node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
-        response = await client.call(request)
+        get_info_response = await client.call(uavcan.node.GetInfo_1_0.Request())
         client.close()
-        assert response is not None, "The node has not respond on GetInfo request."
-        print(f"- 1/2. The node has been respond on GetInfo request.")
-
-        name = "".join([chr(item) for item in response[0].name])
-        assert TestGenericNodeInformation._check_node_name(name), f"The node name '{name}' does not follow the node name pattern."
-        print(f"- 2/2. The node '{name}' follows the node name pattern.")
-
-    @staticmethod
-    def _check_node_name(node_name):
-        pattern = r'^[a-z0-9_\-]+(\.[a-z0-9_\-]+)+$'
-        return re.match(pattern, node_name) is not None
+        assert get_info_response is not None
+        get_info_response = get_info_response[0]
+        TestGenericNodeInformation.get_info_response = get_info_response
+        TestGenericNodeInformation.data_collected = True
+        return TestGenericNodeInformation.get_info_response
 
 
 @pytest.mark.asyncio
@@ -139,7 +218,7 @@ class TestPersistentMemory():
 
         tested_node_info = await node_finder.get_tested_node_info()
         dest_node_name = tested_node_info['name']
-        if dest_node_name == 'org.opencyphal.yakut.monitor':
+        if dest_node_name in DEBUGGING_TOOLS_NAME:
             print("Skip test because yakut doesn't support ExecuteCommand.")
             return
 
@@ -203,13 +282,13 @@ class TestPortList:
         print(f"- register.Access {port_list_msg.servers.mask[384]}")
         print(f"- register.List   {port_list_msg.servers.mask[385]}")
         print(f"- GetInfo         {port_list_msg.servers.mask[430]}")
-        if not dest_node_name == 'org.opencyphal.yakut.monitor':
+        if not dest_node_name in DEBUGGING_TOOLS_NAME:
             print(f"- ExecuteCommand  {port_list_msg.servers.mask[435]}")
 
         assert port_list_msg.servers.mask[384], "register.Access is not supported"
         assert port_list_msg.servers.mask[385], "register.List is not supported"
         assert port_list_msg.servers.mask[430], "GetInfo is not supported"
-        if not dest_node_name == 'org.opencyphal.yakut.monitor':
+        if not dest_node_name in DEBUGGING_TOOLS_NAME:
             assert port_list_msg.servers.mask[435], "ExecuteCommand is not supported"
 
 
@@ -301,12 +380,19 @@ async def main():
     print("Cyphal specification checker:")
     await TestNodeHeartbeat.test_frequency()
     await TestNodeHeartbeat.test_uptime()
+
+    await TestGenericNodeInformation.test_protocol_version()
+    await TestGenericNodeInformation.test_hardware_version()
+    await TestGenericNodeInformation.test_software_version()
+    await TestGenericNodeInformation.test_software_vcs_revision_id()
+    await TestGenericNodeInformation.test_unique_id()
+    await TestGenericNodeInformation.test_node_name()
+
     await TestRegisters.test_registers_name()
     await TestRegisters.test_default_registers_existance()
     await TestRegisters.test_port_register_types()
     await TestPortList.test_port_list()
     await TestPersistentMemory.test_persistent_memory()
-    await TestGenericNodeInformation.test_node_name()
 
 def run_cyphal_standard_checker():
     asyncio.run(main())
