@@ -19,7 +19,7 @@ jobs:
         with:
           path: 'repository'
 
-      - name: Run Cyphal node with ID 126 in background (Yakut Monitor)
+      - name: Clone DSDL
         run: |
           mkdir -p /home/runner/.cyphal/zubax_dsdl
           git clone https://github.com/Zubax/zubax_dsdl.git /home/runner/.cyphal/zubax_dsdl
@@ -27,7 +27,7 @@ jobs:
           mkdir -p /home/runner/.cyphal/public_regulated_data_types
           git clone https://github.com/OpenCyphal/public_regulated_data_types.git /home/runner/.cyphal/public_regulated_data_types
 
-      - name: Run Cyphal node with ID 126 in background (Yakut Monitor)
+      - name: Run Yakut Monitor with ID 126 in background
         run: |
           cd repository
           source cyphal/init.sh --interface slcan0 --node-id 126 -v

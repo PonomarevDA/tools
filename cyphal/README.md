@@ -2,9 +2,9 @@
 
 A few Cyphal related scripts are collected here.
 
-## Preparation
+## PREPARATION
 
-To start with Cyphal/CAN (pycyphal, yakut, yukon) we recommend configuring the following environment variables:
+To start with Cyphal/CAN (pycyphal, yakut, yukon) the following environment variables should be configured:
 
 | Environment variable | Meaning |
 | -------------------- | - |
@@ -79,7 +79,7 @@ There are a few approaches here.
 
     </details>
 
-## Cyphal specification checker ([specification_checker.py](specification_checker.py))
+## CYPHAL SPECIFICATION CHECKER
 
 [specification_checker.py](specification_checker.py) is a collection of pytest tests for a few Application-level functions described in [the Cyphal specification](https://opencyphal.org/specification/Cyphal_Specification.pdf).
 
@@ -117,6 +117,10 @@ All tests are divided into a few groups. A brief their description is shown belo
 
 > not yet, but it is partically tested in other tests
 
+**5.3.9. Node software update**
+
+> not yet
+
 **5.3.10. Register interface**
 
 | № | Name                      | Test case description |
@@ -126,10 +130,6 @@ All tests are divided into a few groups. A brief their description is shown belo
 | 3 | test_port_id_register | Port .id registers (uavcan.PORT_TYPE.PORT_NAME.id) must be natural16[1], mutable, persistent and the default value is 65535 |
 | 4 | test_port_type_register | Port .type registers (uavcan.PORT_TYPE.PORT_NAME.type) must be string, immutable and persistent |
 | 5 | test_persistent_memory | 1. y r <id> uavcan.node.description <random_string> </br> 2. y cmd <id> 65530 </br> 3. y cmd <id> 65535 </br> 4. y r <id> uavcan.node.description # <random_string> |
-
-**5.3.9. Node software update**
-
-> not yet
 
 **5.3.11. Diagnostics and event logging**
 
@@ -144,7 +144,15 @@ All tests are divided into a few groups. A brief their description is shown belo
 - there is only one node only online and Node ID != 127
 - a few tests are skipped for yakut node
 
-**Usage**
+## USAGE
+
+**Installation**
+
+```
+pip install pycyphal pytest pytest-asyncio
+```
+
+**1. Manual usage**
 
 1. Set environment variables with `source cyphal/setup_linux_slcan.sh`, `source cyphal/init.sh` or any other way you want
 
@@ -153,6 +161,12 @@ All tests are divided into a few groups. A brief their description is shown belo
     pytest cyphal/specification_checker.py --verbose
     ```
 
-A usage example is demonstrated below:
+    A usage example is demonstrated below:
 
-![](https://github.com/PonomarevDA/tools/blob/docs/assets/cyphal/specification_checker.gif?raw=true)
+    ![](https://github.com/PonomarevDA/tools/blob/docs/assets/cyphal/specification_checker.gif?raw=true)
+
+**2. Usage with Github Actions**
+
+Check examples with:
+- Yakut: https://github.com/PonomarevDA/tools/blob/main/.github/workflows/specification_checker.yml.
+- RaccoonLab Mini node: https://github.com/RaccoonlabDev/mini_v2_node/blob/main/.github/workflows/cyphal.yml
