@@ -55,10 +55,6 @@ class UbloxCommands:
                       (baudrate >> 16) % 256,
                       (baudrate >> 24) % 256])
 
-
-    def generate_val_set_command():
-        pass
-
 def main():
     generator = UbloxCommands()
 

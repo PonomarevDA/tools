@@ -61,7 +61,7 @@ class CanProtocolParser:
             self.protocol = Protocol.UNKNOWN
             for _ in range(100):
                 msg = CanMessage(bus.recv())
-                self.protocol = msg.get_protocol() if msg is not None else Protocol.UNKNOWN
+                self.protocol = msg.get_protocol()
                 self.node_id = msg.get_node_id()
                 if self.protocol is not Protocol.UNKNOWN:
                     break

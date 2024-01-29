@@ -90,7 +90,7 @@ class HighColorPub:
         self.msg.red   = self.red   % 32 if self.red   % 64  < 32 else 63 -  self.red   % 64
         self.msg.green = self.green % 64 if self.green % 128 < 64 else 127 - self.green % 128
         self.msg.blue  = self.blue  % 32 if self.blue  % 64  < 32 else 63 -  self.blue  % 64
-        print(f"Lights:")
+        print("Lights:")
         print(f"- HighColor: red={self.msg.red}, green={self.msg.green}, blue={self.msg.blue}")
         self._pub_counter += 1
         await self._pub.publish(self.msg)
@@ -145,13 +145,13 @@ class GpsSatsSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.sats.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.primitive.scalar.Integer16_1_0)
     def print_data(self):
-        print(f"GNSS:")
+        print("GNSS:")
         value = self.data.value if self.data is not None else None
         if value == 0:
             value = Colorizer.header(value)
         print(f"- sats ({self.get_id_string()}): {value}")
-        print(f"- lat:")
-        print(f"- lon:")
+        print("- lat:")
+        print("- lon:")
 
 class GpsTimeUtcSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2002, reg_name="uavcan.pub.gps.time_utc.id") -> None:

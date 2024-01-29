@@ -10,7 +10,12 @@ import numpy as np
 # pylint: disable=import-error
 import uavcan.register.Access_1_0
 import uavcan.register.List_1_0
+import uavcan.node.port.List_1_0
 
+UAVCAN_PUB = "uavcan.pub"
+UAVCAN_SUB = "uavcan.sub"
+UAVCAN_CLN = "uavcan.cln"
+UAVCAN_SRV = "uavcan.srv"
 
 class NodeFinder:
     """
@@ -124,7 +129,7 @@ class RegisterInterface:
         for _ in range(max_register_amount):
             list_response = await list_client.call(list_request)
             if list_response is None:
-                return None
+                break
 
             register_name = _np_array_to_string(list_response[0].name.name)
             if len(register_name) == 0:
@@ -171,7 +176,7 @@ class PortRegisterInterface:
         value = await self.registers.register_acess(dest_node_id, register_name)
 
         if register_name is None or value.natural16 is None:
-            return None
+            return 65535
 
         return int(value.natural16.value[0])
 
@@ -190,14 +195,14 @@ class PortRegisterInterface:
     @staticmethod
     def is_port_id(register : str):
         assert isinstance(register, str)
-        start_ok = register.startswith(("uavcan.pub", "uavcan.sub", "uavcan.cln", "uavcan.srv"))
+        start_ok = register.startswith((UAVCAN_PUB, UAVCAN_SUB, UAVCAN_CLN, UAVCAN_SRV))
         end_ok = register.endswith(".id")
         return start_ok and end_ok
 
     @staticmethod
     def is_port_type(register : str):
         assert isinstance(register, str)
-        start_ok = register.startswith(("uavcan.pub", "uavcan.sub", "uavcan.cln", "uavcan.srv"))
+        start_ok = register.startswith((UAVCAN_PUB, UAVCAN_SUB, UAVCAN_CLN, UAVCAN_SRV))
         end_ok = register.endswith(".type")
         return start_ok and end_ok
 
@@ -207,13 +212,13 @@ class PortRegisterInterface:
         port_type = None
         port_reg_type = None
 
-        if port_register_name.startswith("uavcan.pub"):
+        if port_register_name.startswith(UAVCAN_PUB):
             port_type = 'pub'
-        elif port_register_name.startswith("uavcan.sub"):
+        elif port_register_name.startswith(UAVCAN_SUB):
             port_type = 'sub'
-        elif port_register_name.startswith("uavcan.cln"):
+        elif port_register_name.startswith(UAVCAN_CLN):
             port_type = 'cln'
-        elif port_register_name.startswith("uavcan.srv"):
+        elif port_register_name.startswith(UAVCAN_SRV):
             port_type = 'srv'
 
         if port_register_name.endswith(".id"):
