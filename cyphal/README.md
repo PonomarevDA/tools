@@ -90,7 +90,7 @@ All tests are divided into a few groups. A brief their description is shown belo
 | № | Name                   | Test case description |
 | - | ---------------------- | --------------------- |
 | 1 | test_frequency         | 1. Wait for 5 Heartbeats </br> 2. Check that the publishing rate is exactly 1 Hz |
-| 2 | test_uptime            | 1. Wait for 5 Heartbeats </br> 2. Check that the uptime is correctly increased. The node should be rebooted during the test. </br> This test is useful for Watchdog issues detection |
+| 2 | test_uptime            | 1. Wait for 5 Heartbeats </br> 2. Check that the uptime is correctly increased. The node should not be rebooted during the test. </br> This test is useful for Watchdog issues detection. |
 
 **5.3.3. Generic node information (uavcan.node.GetInfo)**
 
@@ -141,7 +141,7 @@ All tests are divided into a few groups. A brief their description is shown belo
 
 **Assumptions**
 
-- there is only one node only online and Node ID != 127
+- there is only one online node and Node ID != 127
 - a few tests are skipped for yakut node
 
 ## USAGE
