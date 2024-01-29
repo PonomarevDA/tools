@@ -11,7 +11,7 @@ class DronecanNode:
     node = None
     def __init__(self) -> None:
         if DronecanNode.node is None:
-            DronecanNode.node = dronecan.make_node(f'slcan:/dev/ttyACM0', bitrate=1000000, baudrate=1000000)
+            DronecanNode.node = dronecan.make_node('slcan:/dev/ttyACM0', bitrate=1000000, baudrate=1000000)
 
     def sub_once(self, data_type, timeout_sec=1.0) -> tuple:
         self.msg = None
@@ -59,7 +59,7 @@ class TestNodeStatus:
 
         periods = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps) - 1)]
         for number in periods:
-            assert pytest.approx(number, abs=0.05) == 0.5
+            assert pytest.approx(0.5, abs=0.05) == number
 
         uptame_elapsed = msgs[-1].message.uptime_sec - msgs[0].message.uptime_sec
         assert uptame_elapsed == 2 or uptame_elapsed == 3

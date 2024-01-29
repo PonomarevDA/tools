@@ -5,7 +5,7 @@
 
 import dronecan
 from dronecan import uavcan
-node = dronecan.make_node(f'slcan:/dev/ttyACM0', bitrate=1000000, baudrate=1000000)
+node = dronecan.make_node('slcan:/dev/ttyACM0', bitrate=1000000, baudrate=1000000)
 
 def handle_node_status(data):
     print(data.message)

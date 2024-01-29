@@ -2,6 +2,7 @@
 import asyncio
 import datetime
 import random
+import math
 
 import pycyphal.application
 # pylint: disable=import-error
@@ -29,7 +30,8 @@ class TimeWeekChecker:
         await asyncio.sleep(5)
 
     async def _callback(self, msg, transfer_from):
-        if msg.point.latitude == 0.0 and msg.num_sats == 0:
+        if math.isclose(msg.point.latitude, 0.0, abs_tol=1e-05) and \
+           math.isclose(msg.num_sats, 0.0, abs_tol=1e-05):
             print(f"GNSS has not been estimate the date yet.")
             return
 

@@ -32,9 +32,7 @@ if __name__ == "__main__":
     if args.upload:
         upload_firmware(protocol=args.protocol, node=args.node)
 
-    if args.test:
-        if args.protocol == 'cyphal':
-            subprocess.Popen(f"./cyphal/init.sh".split(), stdout=subprocess.PIPE).communicate()
-            import pytest
-            retcode = pytest.main(["-x", "cyphal/specification_checker.py"])
-    
+    if args.test and args.protocol == 'cyphal':
+        subprocess.Popen("./cyphal/init.sh".split(), stdout=subprocess.PIPE).communicate()
+        import pytest
+        retcode = pytest.main(["-x", "cyphal/specification_checker.py"])
