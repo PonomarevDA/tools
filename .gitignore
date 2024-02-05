@@ -4,3 +4,5 @@ binaries/
 __pycache__/
 *.pyc
 report.txt
+dist/
+src/raccoonlab_tools.egg-info/

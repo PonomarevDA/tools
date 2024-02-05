@@ -1,0 +1,4 @@
+pyserial
+pycyphal
+pytest
+pytest-asyncio

@@ -1,51 +1,58 @@
-# Cyphal/DroneCAN nodes tools  [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=PonomarevDA_tools&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=PonomarevDA_tools) [![cyphal_init.sh](https://github.com/PonomarevDA/tools/actions/workflows/cyphal_init.yml/badge.svg)](https://github.com/PonomarevDA/tools/actions/workflows/cyphal_init.yml) [![specification_checker.py](https://github.com/PonomarevDA/tools/actions/workflows/specification_checker.yml/badge.svg)](https://github.com/PonomarevDA/tools/actions/workflows/specification_checker.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=PonomarevDA_tools&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=PonomarevDA_tools) [![cyphal_init.sh](https://github.com/PonomarevDA/tools/actions/workflows/cyphal_init.yml/badge.svg)](https://github.com/PonomarevDA/tools/actions/workflows/cyphal_init.yml) [![specification_checker.py](https://github.com/PonomarevDA/tools/actions/workflows/specification_checker.yml/badge.svg)](https://github.com/PonomarevDA/tools/actions/workflows/specification_checker.yml)
 
-`tools` is a collection of bash and python scripts for testing and configuration of Cyphal/CAN and DroneCAN nodes.
+# Cyphal/DroneCAN nodes tools  
 
-It is expected to use Ununtu 20.04 or newer.
+`tools` is a collection of scripts for testing and configuration of Cyphal/CAN and DroneCAN nodes.
 
-## Cyphal/CAN
+## Current status
 
-For details of the Cyphal related scripts please check the corresponded [cyphal/README.md](cyphal/README.md) file. Here is a brief info of the most essential scripts:
+> This package is under development. It is avaliable in [test.pypi](https://test.pypi.org/project/raccoonlab-tools/) at the moment.
 
-1. [cyphal/init.sh](cyphal/init.sh) is used for automatically:
-    1. Create CAN-interface either on a real CAN-sniffer or vitual CAN interface
-    2. Configure environment variables for Yakut or Yukon
-    3. Compile DSDL based on public regulated data types
-2. [cyphal/specification_checker.py](cyphal/specification_checker.py) can be used as part of CI or just to check does a not correspond to the Cyphal standard or not. |
+## Usage
 
-## CAN
+Install the package from test.pypi and then run the desired script:
 
-Cyphal/CAN and DroneCAN scripts are basically based on the [can/create_slcan.sh](can/create_slcan.sh) script: 
-
-```bash
-./can/create_slcan.sh --help
+```
+pip install -i https://test.pypi.org/simple/ raccoonlab-tools
 ```
 
-## STM32 tools
+<!-- ### UC1. Check protocol
 
-A few STM32 related scripts are located in [stm32](stm32) folder:
+rl-check-protocol
 
-1. Update STM32 firmware:
+return cyphal | dronecan | none
 
-    ```bash
-    ./stm32/flash.sh <path_to_the_binary.bin>
-    ```
+### UC2. Upload firmware with st-link linux
 
-2. Build STM32CubeIDE project with CLI:
+rl-upload-firmware
 
-    ```bash
-    cd repo
-    ./tools/stm32/build_cubeide.sh -v -c /opt/stm32cubeide/stm32cubeide -d . -p project_example
-    ```
+### UC3-4. Upload cyphal/dronecan parameters
 
-## DroneCAN
+rl-upload-params
 
-> Work in progress...
+### UC5-6. Provide cyphal/dronecan basic tests
 
-## RaccoonLab nodes
+rl-test-cyphal-specification
 
-> Work in progress. A few RaccoonLab nodes related scripts will be located in [nodes](nodes) folder.
+rl-test-dronecan-specification
+
+### UC7-8. Check cyphal/dronecan node type by name
+
+rl-give-node-type
+
+### UC9. Check RL firmware version
+
+rl-check-updates
+
+### UC10. Check other (custom) vendors firmware version
+
+...
+
+### UC11-12. Create socketcan linux (real/virtual)
+
+rl-socketcan
+
+### UC13-14. Create slcan linux/windows -->
 
 ## License
 
