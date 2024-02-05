@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# This software is distributed under the terms of the MIT License.
+# Copyright (c) 2024 Dmitry Ponomarev.
+# Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
+
 """
 Cyphal tail byte:
 Bit     Field               Single-frame        Multi-frame transfers
@@ -60,7 +64,10 @@ class CanProtocolParser:
         with can.Bus(interface='slcan', channel=channel, ttyBaudrate=1000000, bitrate=1000000) as bus:
             self.protocol = Protocol.UNKNOWN
             for _ in range(100):
-                msg = CanMessage(bus.recv())
+                can_frame = bus.recv()
+                if len(can_frame.data) != 8:
+                    continue
+                msg = CanMessage(can_frame)
                 self.protocol = msg.get_protocol()
                 self.node_id = msg.get_node_id()
                 if self.protocol is not Protocol.UNKNOWN:
@@ -71,7 +78,3 @@ class CanProtocolParser:
 
     def get_node_id(self):
         return self.node_id
-
-if __name__ == "__main__":
-    can_protocol_parser = CanProtocolParser()
-    print(can_protocol_parser.get_protocol())
