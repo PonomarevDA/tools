@@ -16,16 +16,19 @@ Install the package from test.pypi and then run the desired script:
 pip install -i https://test.pypi.org/simple/ raccoonlab-tools
 ```
 
-### UC1. Test cyphal specification
+### 1. Test cyphal specification
 
 ```bash
 rl-test-cyphal-specification
 ```
 
-<!-- ### UC2. Test dronecan specification
+### 2. Test dronecan specification
 
+```bash
 rl-test-dronecan-specification
+```
 
+<!--
 ### UC3. Check protocol
 
 rl-check-protocol
