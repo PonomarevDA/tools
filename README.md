@@ -39,13 +39,34 @@ return cyphal | dronecan | none
 ### 4. Upload firmware with st-link linux
 
 ```bash
-rl-upload-firmware
+rl-upload-firmware --config PATH
+```
+
+Example of yaml config file:
+
+```yaml
+# config.yaml
+metadata:
+    link: RaccoonlabDev/mini_v2_node
 ```
 
 ### 5. Upload dronecan parameters
 
 ```bash
-rl-upload-params
+rl-get-dronecan-params
+```
+
+```bash
+rl-set-dronecan-params
+```
+
+Example of yaml config file:
+
+```yaml
+# config.yaml
+params:
+    uavcan.node_id: 31
+    uavcan.node.name: co.rl.mini
 ```
 
 <!--
