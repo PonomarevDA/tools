@@ -16,25 +16,29 @@ Install the package from test.pypi and then run the desired script:
 pip install -i https://test.pypi.org/simple/ raccoonlab-tools
 ```
 
-<!-- ### UC1. Check protocol
+### UC1. Test cyphal specification
+
+```bash
+rl-test-cyphal-specification
+```
+
+<!-- ### UC2. Test dronecan specification
+
+rl-test-dronecan-specification
+
+### UC3. Check protocol
 
 rl-check-protocol
 
 return cyphal | dronecan | none
 
-### UC2. Upload firmware with st-link linux
+### UC4. Upload firmware with st-link linux
 
 rl-upload-firmware
 
-### UC3-4. Upload cyphal/dronecan parameters
+### UC5-6. Upload cyphal/dronecan parameters
 
 rl-upload-params
-
-### UC5-6. Provide cyphal/dronecan basic tests
-
-rl-test-cyphal-specification
-
-rl-test-dronecan-specification
 
 ### UC7-8. Check cyphal/dronecan node type by name
 

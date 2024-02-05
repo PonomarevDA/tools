@@ -13,7 +13,7 @@ import pycyphal.application
 # pylint: disable=import-error
 import uavcan
 import uavcan.node.port.List_1_0
-from utils import NodeFinder, RegisterInterface, PortRegisterInterface, NodeCommander
+from raccoonlab_tools.cyphal.utils import NodeFinder, RegisterInterface, PortRegisterInterface, NodeCommander
 
 # We are going to ignore a few checks for the given nodes:
 DEBUGGING_TOOLS_NAME = [
@@ -403,7 +403,14 @@ class TestRegisterInterface:
         TestRegisterInterface.register_list = register_names
         return TestRegisterInterface.register_list
 
+def main():
+    import os
+    import subprocess
+    print(os.path.abspath(__file__))
+    subprocess.call(["pytest", os.path.abspath(__file__),
+                     "-v",
+                     '--asyncio-mode=auto',
+                     '-W', 'ignore::DeprecationWarning'])
 
 if __name__ == "__main__":
-    import os
-    print(f"Try: `pytest cyphal/{os.path.basename(__file__)} -v`")
+    main()
