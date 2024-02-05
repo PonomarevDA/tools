@@ -9,15 +9,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
-      - name: Install
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y linux-modules-extra-$(uname -r)
-          python3 -m pip install yakut pytest pytest-asyncio
-
-      - uses: actions/checkout@v3
-        with:
-          path: 'repository'
+          python3 -m pip install pip -U
+          pip install .
 
       - name: Clone DSDL
         run: |
@@ -29,12 +28,10 @@ jobs:
 
       - name: Run Yakut Monitor with ID 126 in background
         run: |
-          cd repository
           source cyphal/init.sh --interface slcan0 --node-id 126 -v
           y mon &
 
       - name: Run pytest
         run: |
-          cd repository
           source cyphal/init.sh -i slcan0 -n 127 -v
-          pytest cyphal/specification_checker.py --verbose
+          ./src/raccoonlab_tools/scripts/cyphal/test_specification.py

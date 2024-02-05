@@ -21,6 +21,9 @@ dynamic = ["dependencies"]
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
+[project.scripts]
+rl-test-cyphal-specification = "raccoonlab_tools.scripts.cyphal.test_specification:main"
+
 [project.urls]
 "Homepage" = "https://github.com/PonomarevDA/tools"
 "Bug Tracker" = "https://github.com/PonomarevDA/tools/issues"
