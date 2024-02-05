@@ -28,22 +28,29 @@ rl-test-cyphal-specification
 rl-test-dronecan-specification
 ```
 
-
 ### 3. Check protocol
 
+```bash
 rl-check-protocol
+```
 
 return cyphal | dronecan | none
 
+### 4. Upload firmware with st-link linux
+
+```bash
+rl-upload-firmware
+```
+
+### 5. Upload dronecan parameters
+
+```bash
+rl-upload-params
+```
+
 <!--
 
-### UC4. Upload firmware with st-link linux
-
-rl-upload-firmware
-
-### UC5-6. Upload cyphal/dronecan parameters
-
-rl-upload-params
+### 6. Upload dronecan parameters
 
 ### UC7-8. Check cyphal/dronecan node type by name
 
