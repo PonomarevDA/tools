@@ -73,11 +73,47 @@ class ParametersInterface:
             value = value
         )
 
+class NodeFinder:
+    """
+    Sscan a network for a target node.
+    Possible target nodes id are [0, 126].
+    Node ID 127 is intentionally ignored because it is usually occupied by debugging tools.
+    """
+    target_node_id = None
+    black_list = [127]
+
+    def __init__(self, dronecan_node : dronecan.node.Node) -> None:
+        self.node = dronecan_node
+
+    def find_online_node(self, time_left_sec : float = 1.1) -> int:
+        assert isinstance(time_left_sec, float)
+
+        if NodeFinder.target_node_id is not None:
+            return NodeFinder.target_node_id
+
+        handler = self.node.add_handler(dronecan.uavcan.protocol.NodeStatus, self._node_status_cb)
+        while time_left_sec > 0.0:
+            time_left_sec -= 0.005
+            self.node.spin(0.005)
+            if NodeFinder.target_node_id is not None:
+                break
+        handler.remove()
+
+        return NodeFinder.target_node_id
+
+    def _node_status_cb(self, transfer : dronecan.node.TransferEvent):
+        source_node_id = transfer.transfer.source_node_id
+        if source_node_id not in NodeFinder.black_list:
+            NodeFinder.target_node_id = source_node_id
 
 # Tests
 if __name__ =="__main__":
     node = dronecan.make_node('slcan:/dev/ttyACM0', node_id=100, bitrate=1000000, baudrate=1000000)
-    params_interface = ParametersInterface(node=node, target_node_id=32)
+
+    target_node_finder = NodeFinder(node)
+    target_node_id = target_node_finder.find_online_node()
+
+    params_interface = ParametersInterface(node=node, target_node_id=target_node_id)
     all_params = params_interface.get_all()
     for param in all_params:
         print(param)
