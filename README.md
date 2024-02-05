@@ -28,12 +28,14 @@ rl-test-cyphal-specification
 rl-test-dronecan-specification
 ```
 
-<!--
-### UC3. Check protocol
+
+### 3. Check protocol
 
 rl-check-protocol
 
 return cyphal | dronecan | none
+
+<!--
 
 ### UC4. Upload firmware with st-link linux
 
