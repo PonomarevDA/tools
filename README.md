@@ -71,7 +71,7 @@ params:
 
 <!--
 
-### 6. Upload dronecan parameters
+### 6. Upload cyphal parameters
 
 ### UC7-8. Check cyphal/dronecan node type by name
 
