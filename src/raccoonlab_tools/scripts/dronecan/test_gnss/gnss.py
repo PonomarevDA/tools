@@ -5,29 +5,26 @@
 import os
 from datetime import date
 import logging
-
 import dronecan
-from dronecan import uavcan
-
 
 class DronecanGpsMagBaroChecker:
     def __init__(self, node):
         self._node = node
 
-        node.add_handler(uavcan.equipment.gnss.Fix2, self._gps_callback)
+        node.add_handler(dronecan.uavcan.equipment.gnss.Fix2, self._gps_callback)
         self._sats_used = None
         self._required_sats = 6
 
-        node.add_handler(uavcan.equipment.ahrs.MagneticFieldStrength, self._mag_callback)
+        node.add_handler(dronecan.uavcan.equipment.ahrs.MagneticFieldStrength, self._mag_callback)
         self._magnetic_field_ga = None
 
-        node.add_handler(uavcan.equipment.air_data.StaticPressure, self._static_pressure_callback)
+        node.add_handler(dronecan.uavcan.equipment.air_data.StaticPressure, self._static_pressure_callback)
         self._static_pressure = None
 
-        node.add_handler(uavcan.equipment.air_data.StaticTemperature, self._static_temperature_callback)
+        node.add_handler(dronecan.uavcan.equipment.air_data.StaticTemperature, self._static_temperature_callback)
         self._static_temperature = None
 
-        req = uavcan.protocol.GetNodeInfo.Request()
+        req = dronecan.uavcan.protocol.GetNodeInfo.Request()
         node.request(req, 70, self._node_info_callback)
         self.software_version = None
         self.hardware_version = None
