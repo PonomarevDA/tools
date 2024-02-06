@@ -9,14 +9,11 @@ import time
 import datetime
 import math
 import asyncio
-import pathlib
 import numpy as np
 import random
 
+import pycyphal.application
 
-repo_dir = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(repo_dir / "build/nunavut_out"))
-sys.path.insert(0, str(repo_dir / "cyphal"))
 # pylint: disable=import-error
 import uavcan.register.Access_1_0
 import uavcan.node.Heartbeat_1_0
@@ -32,47 +29,14 @@ import reg.udral.physics.optics.HighColor_0_1
 import reg.udral.service.actuator.common.sp.Vector31_0_1
 import reg.udral.service.common.Readiness_0_1
 
-import pycyphal.application
-
-from utils import NodeFinder, PortRegisterInterface
-
-class Colors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-class Colorizer:
-    @staticmethod
-    def normal(origin_string):
-        return origin_string
-
-    @staticmethod
-    def header(origin_string):
-        """Purple"""
-        return f"{Colors.HEADER}{origin_string}{Colors.ENDC}"
-
-    @staticmethod
-    def warning(origin_string):
-        "Orange"
-        return f"{Colors.WARNING}{origin_string}{Colors.ENDC}"
-
-    @staticmethod
-    def okcyan(origin_string):
-        return f"{Colors.OKCYAN}{origin_string}{Colors.ENDC}"
-
-    @staticmethod
-    def okgreen(origin_string):
-        return f"{Colors.OKGREEN}{origin_string}{Colors.ENDC}"
+from raccoonlab_tools.common.colorizer import Colorizer, Colors
+from raccoonlab_tools.cyphal.utils import NodeFinder, PortRegisterInterface
 
 
 class HighColorPub:
-    def __init__(self, node, node_id) -> None:
+    def __init__(self, node : pycyphal.application._node_factory.SimpleNode, node_id : int) -> None:
+        assert isinstance(node, pycyphal.application._node_factory.SimpleNode)
+        assert isinstance(node_id, int)
         self.node = node
         self.node_id = node_id
         self.msg = reg.udral.physics.optics.HighColor_0_1()
@@ -82,7 +46,7 @@ class HighColorPub:
     async def init(self):
         self._pub = self.node.make_publisher(reg.udral.physics.optics.HighColor_0_1, 2107)
         self._pub_counter = 0
-    async def process_publisher(self):
+    async def publish_and_print(self):
         self.red += random.randint(0,1)
         self.green += random.randint(0,2)
         self.blue += random.randint(0,1)
@@ -97,7 +61,16 @@ class HighColorPub:
 
 
 class BaseSubscriber:
-    def __init__(self, node, node_id, def_id, reg_name, data_type) -> None:
+    def __init__(self,
+                 node : pycyphal.application._node_factory.SimpleNode,
+                 node_id : int,
+                 def_id : int,
+                 reg_name : str,
+                 data_type) -> None:
+        assert isinstance(node, pycyphal.application._node_factory.SimpleNode)
+        assert isinstance(node_id, int)
+        assert isinstance(def_id, int)
+        assert isinstance(reg_name, str)
         self.node = node
         self.data = None
         self._id = None
@@ -230,7 +203,7 @@ class BaseMonitor:
 
     async def process(self):
         for pub in self.pubs:
-            await pub.process_publisher()
+            await pub.publish_and_print()
         for sub in self.subs:
             sub.print_data()
 
@@ -344,8 +317,8 @@ class RLConfigurator:
 
 
             print(f"- ID: {self.node_id}")
-            print(f"- Health: {RLConfigurator._health_to_string(self.heartbeat.health.value)}")
-            print(f"- Mode: {RLConfigurator._mode_to_string(self.heartbeat.mode.value)}")
+            print(f"- Health: {Colorizer.health_to_string(self.heartbeat.health.value)}")
+            print(f"- Mode: {Colorizer.mode_to_string(self.heartbeat.mode.value)}")
             print(f"- VSSC: {node_monitor.get_vssc_meaning(self.heartbeat.vendor_specific_status_code)}")
 
             print(f"- UID: {info['uid']}")
@@ -372,6 +345,9 @@ class RLConfigurator:
         elif name == 'PX4_FMU_V5':
             print(f"Node `{name}` has been found.")
             node = PX4Monitor(self.node, self.node_id)
+        elif name == 'co.raccoonlab.mini':
+            print(f"Node `{name}` has been found.")
+            node = BaseMonitor(self.node)
         else:
             print(f"Unknown node `{name}` has been found. Exit")
             sys.exit(0)
@@ -383,33 +359,12 @@ class RLConfigurator:
         if self.node_id == transfer_from.source_node_id:
             self.heartbeat = data
 
-    @staticmethod
-    def _health_to_string(value : int) -> str:
-        assert isinstance(value, int)
-        mapping = {
-            0 : "NOMINAL (0)",
-            1 : f"{Colors.HEADER}ADVISORY (1){Colors.ENDC}",
-            2 : f"{Colors.WARNING}CAUTION (2){Colors.ENDC}",
-            3 : f"{Colors.FAIL}WARNING (3){Colors.ENDC}",
-        }
-        assert value in mapping
-        return mapping[value]
-
-    @staticmethod
-    def _mode_to_string(value : int) -> str:
-        assert isinstance(value, int)
-        mapping = {
-            0: "OPERATIONAL",
-            1: Colorizer.okcyan("INITIALIZATION"),
-            2: Colorizer.header("MAINTENANCE"),
-            3: Colorizer.warning("SOFTWARE_UPDATE"),
-        }
-
-        return mapping[value]
-
-if __name__ == "__main__":
+def main():
     rl_configurator = RLConfigurator()
     try:
         asyncio.run(rl_configurator.main())
     except KeyboardInterrupt:
         print("Aborted by KeyboardInterrupt.")
+
+if __name__ == "__main__":
+    main()
