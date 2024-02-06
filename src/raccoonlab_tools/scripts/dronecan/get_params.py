@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # This software is distributed under the terms of the MIT License.
-# Copyright (c) 2023 Dmitry Ponomarev.
+# Copyright (c) 2024 Dmitry Ponomarev.
 import dronecan
 from raccoonlab_tools.dronecan.utils import ParametersInterface, NodeFinder
 
