@@ -1,4 +1,5 @@
 pyserial
+python-can
 pycyphal
 pytest
 pytest-asyncio

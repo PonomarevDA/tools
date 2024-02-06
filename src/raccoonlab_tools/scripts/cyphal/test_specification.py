@@ -2,6 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Copyright (c) 2023-2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
+import os
 import asyncio
 import time
 import random
@@ -14,6 +15,8 @@ import pycyphal.application
 import uavcan
 import uavcan.node.port.List_1_0
 from raccoonlab_tools.cyphal.utils import NodeFinder, RegisterInterface, PortRegisterInterface, NodeCommander
+from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol
+from raccoonlab_tools.common.device_manager import DeviceManager
 
 # We are going to ignore a few checks for the given nodes:
 DEBUGGING_TOOLS_NAME = [
@@ -60,8 +63,26 @@ class GlobalCyphalNode:
         GlobalCyphalNode.cyphal_node.start()
         return GlobalCyphalNode.cyphal_node
 
+@pytest.mark.dependency()
+async def test_transport():
+    """
+    This test is required just for optimization purposes.
+    Let's skip all tests if we don't have an online Cyphal node.
+    """
+
+    can_iface = os.environ.get('UAVCAN__CAN__IFACE')
+    if can_iface is None:
+        return  # Skip if transport is not CAN
+    if not can_iface.startswith('slcan:'):
+        return  # Skip of SocketCAN or other interface
+
+    sniffer_port = can_iface[6:]
+    can_protocol_parser = CanProtocolParser(sniffer_port)
+    assert can_protocol_parser.get_protocol() == Protocol.CYPHAL
+
 
 @pytest.mark.asyncio
+@pytest.mark.dependency(depends=["test_transport"])
 class TestNodeHeartbeat:
     """5.3.2 Node heartbeat (uavcan.node.Heartbeat)"""
     timestamps = []
@@ -114,6 +135,7 @@ class TestNodeHeartbeat:
 
 
 @pytest.mark.asyncio
+@pytest.mark.dependency(depends=["test_transport"])
 class TestGenericNodeInformation:
     """5.3.3. Generic node information (uavcan.node.GetInfo)"""
     data_collected = False
@@ -210,6 +232,7 @@ class TestGenericNodeInformation:
 
 
 @pytest.mark.asyncio
+@pytest.mark.dependency(depends=["test_transport"])
 class TestBusDataFlowMonitoring:
     """5.3.4. Bus data flow monitoring (uavcan.node.port)"""
     data_collected = False
@@ -253,6 +276,7 @@ class TestBusDataFlowMonitoring:
         return TestBusDataFlowMonitoring.port_list
 
 @pytest.mark.asyncio
+@pytest.mark.dependency(depends=["test_transport"])
 class TestGenericNodeCommands():
     """
     5.3.8. Generic node commands (uavcan.node.ExecuteCommand)
@@ -260,6 +284,7 @@ class TestGenericNodeCommands():
 
 
 @pytest.mark.asyncio
+@pytest.mark.dependency(depends=["test_transport"])
 class TestRegisterInterface:
     """5.3.10. Register interface"""
     register_list = []
