@@ -57,7 +57,7 @@ rl-get-dronecan-params
 ```
 
 ```bash
-rl-set-dronecan-params
+rl-set-dronecan-params --config PATH
 ```
 
 Example of yaml config file:

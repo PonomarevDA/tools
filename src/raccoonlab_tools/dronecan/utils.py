@@ -18,6 +18,15 @@ class Parameter:
     def __str__(self) -> str:
         return f"{self.name :<30}: {self.value}"
 
+    def create_getset_request(self) -> dronecan.uavcan.protocol.param.GetSet.Request:
+        req = dronecan.uavcan.protocol.param.GetSet.Request()
+        req.name = self.name
+        if isinstance(self.value, int):
+            req.value.integer_value = self.value
+        elif isinstance(self.value, str):
+            req.value.string_value = self.value
+        return req
+
 
 class ParametersInterface:
     """
@@ -33,7 +42,7 @@ class ParametersInterface:
     def get(self, idx : int) -> Parameter:
         """
         None means that the target node dodn't respond
-        Empty means the paramter doesn't exist.
+        Empty means the parameter doesn't exist.
         """
         assert isinstance(idx, int)
         req = dronecan.uavcan.protocol.param.GetSet.Request(index=idx)
@@ -54,6 +63,21 @@ class ParametersInterface:
                 break
             all_params.append(parameter)
         return all_params
+
+    def set(self, param : Parameter) -> Parameter:
+        """
+        None means that the target node dodn't respond
+        Empty means the parameter doesn't exist.
+        """
+        assert isinstance(param, Parameter)
+        self._parameter = None
+        self.node.request(param.create_getset_request(), self._target_node_id, self._callback)
+        for _ in range(20):
+            self.node.spin(0.005)
+            if self._parameter is not None:
+                break
+
+        return self._parameter
 
     def _callback(self, msg : dronecan.uavcan.protocol.param.GetSet.Response):
         if hasattr(msg.response.value, 'boolean_value'):

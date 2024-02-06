@@ -27,6 +27,7 @@ rl-test-dronecan-specification = "raccoonlab_tools.scripts.dronecan.test_specifi
 rl-check-protocol = "raccoonlab_tools.scripts.common.check_protocol:main"
 rl-upload-firmware = "raccoonlab_tools.scripts.common.upload_firmware:main"
 rl-get-params = "raccoonlab_tools.scripts.dronecan.get_params:main"
+rl-set-params = "raccoonlab_tools.scripts.dronecan.set_params:main"
 
 [project.urls]
 "Homepage" = "https://github.com/PonomarevDA/tools"
