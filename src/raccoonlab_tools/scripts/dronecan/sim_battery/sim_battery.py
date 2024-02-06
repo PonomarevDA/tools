@@ -7,12 +7,8 @@ import dronecan
 from dronecan import uavcan
 
 class Battery:
-    def __init__(self, port, node_id=100, bitrate=1000000) -> None:
-        self.node = dronecan.make_node(
-            port,
-            node_id=node_id,
-            bitrate=bitrate,
-            mode=dronecan.uavcan.protocol.NodeStatus().MODE_OPERATIONAL)
+    def __init__(self, node) -> None:
+        self.node = node
         self.battery_msg = uavcan.equipment.power.BatteryInfo(
             temarature = 310,
             voltage = 48.5,
@@ -21,7 +17,6 @@ class Battery:
             state_of_charge_pct = 100,
             model_name = "simulated_battery"
         )
-        self.node_status_msg = uavcan.equipment.power.BatteryInfo()
         self.node.add_handler(uavcan.protocol.NodeStatus, self._node_status_callback)
         self.online_nodes = set()
 
@@ -40,8 +35,13 @@ class Battery:
 
 if __name__ =="__main__":
     parser = argparse.ArgumentParser(description='Simulated DroneCAN Battery')
-    parser.add_argument("port", type=str, help="CAN sniffer port. Example: /dev/ttyACM0")
+    parser.add_argument("--port",
+                        default='slcan:/dev/ttyACM0',
+                        type=str,
+                        help="CAN device name. Examples: slcan:/dev/ttyACM0, slcan0")
     args = parser.parse_args()
 
-    battery = Battery(args.port)
+    node = dronecan.make_node(args.port, node_id=100, bitrate=1000000, baudrate=1000000)
+
+    battery = Battery(node)
     battery.spin()

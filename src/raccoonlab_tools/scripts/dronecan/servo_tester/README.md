@@ -1,19 +1,15 @@
-# DroneCAN
+# Endurance testing of a control surface
 
-Here there are a few pydronecan based scripts.
+## [servo_tester.py](servo_tester.py)
 
-Prerequisites:
-- [RaccoonLab CAN-sniffer](https://docs.raccoonlab.co/guide/programmer_sniffer/),
-- DroneCAN node.
-
-## 1. [gnss.py](gnss.py) - DroneCAN GNSS checker
+Send RawCommand and listen for NodeStatus.
 
 ```bash
 ./can/create_slcan.sh
-./dronecan/gnss.sh
+./dronecan/servo_tester.py
 ```
 
-## 2. [node_parser.py](node_parser.py) - Endurance testing: listen NodeStatus and save them to csv
+## [node_parser.py](node_parser.py): listen NodeStatus and save them to csv
 
 **Usage**
 
@@ -63,41 +59,3 @@ Result of summarised data
 After the summarisation process, logging starts again and new data is added to the output file.
 
 </details>
-
-## 3. [param_setter.py](param_setter.py) Parameters configurator
-
-An example of how to write the parameters to the node:
-
-```bash
-./can/create_slcan.sh
-./dronecan/param_setter.py --file-path tests/params_example.yaml --write
-```
-
-## 4. [servo_tester.py](servo_tester.py) - Endurance testing of a control surface:
-
-Send RawCommand and listen for NodeStatus.
-
-```bash
-./can/create_slcan.sh
-./dronecan/servo_tester.py
-```
-
-## 5. [sim_battery.py](sim_battery.py) BMS example
-
-```bash
-python3 dronecan/sim_battery.py slcan0
-```
-
-With other CAN-sniffer it might be something like:
-
-```bash
-python3 dronecan/sim_battery.py /dev/ttyACM0
-```
-
-## 6. [tests.py](tests.py) Node tests
-
-A few basic tests for a general-purpose DroneCAN node
-
-```bash
-./dronecan/tests.py
-```
