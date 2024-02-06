@@ -29,6 +29,7 @@ rl-upload-firmware = "raccoonlab_tools.scripts.common.upload_firmware:main"
 rl-get-dronecan-params = "raccoonlab_tools.scripts.dronecan.get_params:main"
 rl-set-dronecan-params = "raccoonlab_tools.scripts.dronecan.set_params:main"
 rl-dronecan-config = "raccoonlab_tools.scripts.dronecan.config:main"
+rl-cyphal-monitor = "raccoonlab_tools.scripts.cyphal.monitor:main"
 
 [project.urls]
 "Homepage" = "https://github.com/PonomarevDA/tools"

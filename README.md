@@ -71,6 +71,12 @@ params:
     uavcan.node.name: co.rl.mini
 ```
 
+### 6. Cyphal monitor
+
+```bash
+rl-cyphal-monitor
+```
+
 <!--
 
 ### 6. Upload cyphal parameters
