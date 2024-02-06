@@ -22,6 +22,8 @@ pip install -i https://test.pypi.org/simple/ raccoonlab-tools
 rl-test-cyphal-specification
 ```
 
+![](https://github.com/PonomarevDA/tools/blob/docs/assets/cyphal/specification_checker.gif?raw=true)
+
 ### 2. Test dronecan specification
 
 ```bash
