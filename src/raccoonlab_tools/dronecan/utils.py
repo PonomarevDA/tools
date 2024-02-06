@@ -130,6 +130,45 @@ class NodeFinder:
         if source_node_id not in NodeFinder.black_list:
             NodeFinder.target_node_id = source_node_id
 
+class NodeCommander:
+    """
+    Wrapper under ExecuteCommand
+    """
+    def __init__(self, node, target_node_id) -> None:
+        self.node = node
+        self.dest_node_id = target_node_id
+        self._stored = False
+        self._restarted = False
+
+    def store_persistent_states(self):
+        req = dronecan.uavcan.protocol.param.ExecuteOpcode.Request(opcode=1)
+        self.node.request(req, self.dest_node_id, self._execute_opcode_response_cb)
+        self._stored = None
+        for _ in range(20):
+            self.node.spin(0.005)
+            if self._stored is not None:
+                break
+        return self._stored
+
+    def restart(self):
+        req = dronecan.uavcan.protocol.RestartNode.Request(magic_number=0xACCE551B1E)
+        self.node.request(req, self.dest_node_id, self._restart_node_response_cb)
+        self._restarted = None
+        for _ in range(20):
+            self.node.spin(0.005)
+            if self._restarted is not None:
+                break
+        return self._restarted
+
+    def _execute_opcode_response_cb(self, transfer_event):
+        assert isinstance(transfer_event, dronecan.node.TransferEvent)
+        self._stored = transfer_event.transfer.payload.ok
+
+    def _restart_node_response_cb(self, transfer_event):
+        assert isinstance(transfer_event, dronecan.node.TransferEvent)
+        self._stored = transfer_event.transfer.payload.ok
+
+
 # Tests
 if __name__ =="__main__":
     node = dronecan.make_node('slcan:/dev/ttyACM0', node_id=100, bitrate=1000000, baudrate=1000000)
