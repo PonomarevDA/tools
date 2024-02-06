@@ -20,6 +20,7 @@ Bit     Field               Single-frame        Multi-frame transfers
 """
 import can
 from enum import Enum
+from raccoonlab_tools.common.device_manager import DeviceManager
 
 class Protocol(Enum):
     UNKNOWN = 0
@@ -78,3 +79,10 @@ class CanProtocolParser:
 
     def get_node_id(self):
         return self.node_id
+
+if __name__ == "__main__":
+    device_manager = DeviceManager()
+    sniffer_port = device_manager.get_all_online_sniffers()[0].port
+    protocol_parser = CanProtocolParser(sniffer_port)
+    protocol = protocol_parser.get_protocol()
+    print(protocol)
