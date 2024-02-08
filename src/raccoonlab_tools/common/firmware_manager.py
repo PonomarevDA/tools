@@ -107,7 +107,7 @@ class ProgrammerWindows:
                     "STM32Cube",
                     "STM32CubeProgrammer",
                     "bin",
-                    "STM32_Programmer_CLI"
+                    "STM32_Programmer_CLI.exe"
     ]
     DEFAULT_PATH = os.path.join(*DEFAULT_PATH)
     @staticmethod
