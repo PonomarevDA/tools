@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # This software is distributed under the terms of the MIT License.
 # Copyright (c) 2024 Dmitry Ponomarev.
+import sys
 import argparse
 import yaml
 import dronecan
@@ -24,7 +25,11 @@ def configure_parameters(config : dict, can_transport : str):
 
     if can_transport is None:
         device_manager = DeviceManager()
-        sniffer_port = device_manager.get_all_online_sniffers()[0].port
+        all_sniffers = device_manager.get_all_online_sniffers()
+        if len(all_sniffers) == 0:
+            print("[ERROR] CAN-sniffer has not been automatically found.")
+            sys.exit(1)
+        sniffer_port = all_sniffers[0].port
         can_transport = f'slcan:{sniffer_port}'
 
     node = dronecan.make_node(can_transport, node_id=100, bitrate=1000000, baudrate=1000000)

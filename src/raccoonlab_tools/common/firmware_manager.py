@@ -122,7 +122,7 @@ class ProgrammerWindows:
             print(f"[ERROR] The cli has not been found here: {stm32_programmer_cli_path}.")
             return
 
-        cmd = [stm32_programmer_cli_path, "-c", "port=SWD", "-w", binary_path, "0x08000000"]
+        cmd = [stm32_programmer_cli_path, "-c", "port=SWD", "-w", binary_path, "0x08000000", "-rst"]
         subprocess_with_print(cmd)
 
 
