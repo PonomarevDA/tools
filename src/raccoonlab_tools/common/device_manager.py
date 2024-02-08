@@ -26,7 +26,7 @@ class DeviceManager:
         ports = serial.tools.list_ports.comports()
         for port, desc, hwid in sorted(ports):
             for known_sniffer in KNOWN_SNIFFERS:
-                if desc == known_sniffer.desc and hwid.startswith(known_sniffer.hwid):
+                if desc == known_sniffer.desc or hwid.startswith(known_sniffer.hwid):
                     known_sniffer.port = port
                     sniffers.append(known_sniffer)
                     break
@@ -38,7 +38,7 @@ class DeviceManager:
         ports = serial.tools.list_ports.comports()
         for port, desc, hwid in sorted(ports):
             for known_programmer in KNOWN_PROGRAMMERS:
-                if desc == known_programmer.desc and hwid.startswith(known_programmer.hwid):
+                if desc == known_programmer.desc or hwid.startswith(known_programmer.hwid):
                     known_programmer.port = port
                     programmer.append(known_programmer)
                     break
