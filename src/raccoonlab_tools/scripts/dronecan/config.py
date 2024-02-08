@@ -8,8 +8,7 @@ from raccoonlab_tools.dronecan.utils import Parameter, \
                                             ParametersInterface, \
                                             NodeFinder, \
                                             NodeCommander
-from raccoonlab_tools.common.firmware import get_firmware
-from raccoonlab_tools.common.st_link_linux import StlinkLinux
+from raccoonlab_tools.common.firmware_manager import FirmwareManager
 from raccoonlab_tools.common.device_manager import DeviceManager
 
 
@@ -32,7 +31,7 @@ def main():
     with open(args.config, "r", encoding='UTF-8') as stream:
         config = yaml.safe_load(stream)
 
-        StlinkLinux.upload_firmware(get_firmware(config['metadata']['link']))
+        FirmwareManager.upload_firmware(FirmwareManager.get_firmware(config['metadata']['link']))
 
         params = config['params']
         node = dronecan.make_node(can_transport, node_id=100, bitrate=1000000, baudrate=1000000)

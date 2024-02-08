@@ -5,8 +5,7 @@
 
 import argparse
 import yaml
-from raccoonlab_tools.common.st_link_linux import StlinkLinux
-from raccoonlab_tools.common.firmware import get_firmware
+from raccoonlab_tools.common.firmware_manager import FirmwareManager
 
 def main():
     parser = argparse.ArgumentParser()
@@ -15,8 +14,8 @@ def main():
 
     with open(args.config, "r", encoding='UTF-8') as stream:
         config = yaml.safe_load(stream)
-        binary_path = get_firmware(config['metadata']['link'])
-        StlinkLinux.upload_firmware(binary_path)
+        binary_path = FirmwareManager.get_firmware(config['metadata']['link'])
+        FirmwareManager.upload_firmware(binary_path)
 
 if __name__ == '__main__':
     main()
