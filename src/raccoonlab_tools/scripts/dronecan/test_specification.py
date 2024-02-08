@@ -3,15 +3,25 @@
 # Copyright (c) 2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
-import dronecan
 import time
+import os
+import subprocess
+import dronecan
 import pytest
+
+
+HEALTH_OK = 0
+MODE_OPERATIONAL = 0
+VSSC_RACCOONLAB_RELEASE = 2
 
 class DronecanNode:
     node = None
     def __init__(self) -> None:
         if DronecanNode.node is None:
-            DronecanNode.node = dronecan.make_node('slcan:/dev/ttyACM0', bitrate=1000000, baudrate=1000000)
+            DronecanNode.node = dronecan.make_node('slcan:/dev/ttyACM0',
+                                                   bitrate=1000000,
+                                                   baudrate=1000000)
+        self.msg = None
 
     def sub_once(self, data_type, timeout_sec=1.0) -> tuple:
         self.msg = None
@@ -31,17 +41,29 @@ class TestNodeStatus:
     """
     All nodes are required to publish NodeStatus periodically.
     """
-    def test_existance(self):
+    @staticmethod
+    def test_health():
+        node = DronecanNode()
+        msg = node.sub_once(dronecan.uavcan.protocol.NodeStatus)  # pylint: disable=no-member
+        assert msg.message.health == HEALTH_OK
+
+    @staticmethod
+    def test_mode():
+        node = DronecanNode()
+        msg = node.sub_once(dronecan.uavcan.protocol.NodeStatus)  # pylint: disable=no-member
+        assert msg.message.mode == MODE_OPERATIONAL
+
+    @staticmethod
+    def test_vssc():
         """
-        NodeStatus should appear with health=0 and vssc=2.
+        RaccoonLab specific test: 1 means Debug, 2 means Release.
         """
         node = DronecanNode()
-        msg = node.sub_once(dronecan.uavcan.protocol.NodeStatus)
-        assert msg is not None
-        assert msg.message.health == 0
-        assert msg.message.vendor_specific_status_code == 2
+        msg = node.sub_once(dronecan.uavcan.protocol.NodeStatus)  # pylint: disable=no-member
+        assert msg.message.vendor_specific_status_code == VSSC_RACCOONLAB_RELEASE
 
-    def test_publishing_period(self):
+    @staticmethod
+    def test_publishing_period():
         """
         NodeStatus publishing period should be exactly 500 ms.
         1. Wait for 5 NodeStatus.
@@ -53,7 +75,7 @@ class TestNodeStatus:
         msgs = []
         timestamps = []
         for _ in range(5):
-            msg = node.sub_once(dronecan.uavcan.protocol.NodeStatus)
+            msg = node.sub_once(dronecan.uavcan.protocol.NodeStatus)  # pylint: disable=no-member
             msgs.append(msg)
             timestamps.append(msg.timestamp)
 
@@ -62,11 +84,9 @@ class TestNodeStatus:
             assert pytest.approx(0.5, abs=0.05) == number
 
         uptame_elapsed = msgs[-1].message.uptime_sec - msgs[0].message.uptime_sec
-        assert uptame_elapsed == 2 or uptame_elapsed == 3
+        assert uptame_elapsed in [2, 3]
 
 def main():
-    import os
-    import subprocess
     print(os.path.abspath(__file__))
     subprocess.call(["pytest", os.path.abspath(__file__),
                      "-v",
