@@ -38,18 +38,36 @@ rl-check-protocol
 
 return cyphal | dronecan | none
 
-### 4. Upload firmware with st-link linux
+### 4. Upload firmware with st-link linux / STM32CubeProgrammer Windows
 
 ```bash
 rl-upload-firmware --config PATH
 ```
 
-Example of yaml config file:
+There are 3 ways how you can specify the path to the binary:
+
+1. (recommended) Using a GitHub Repository. It will always download the latest released firmware.
 
 ```yaml
 # config.yaml
 metadata:
     link: RaccoonlabDev/mini_v2_node
+```
+
+2. Direct Link to the Firmware File
+
+```yaml
+# config.yaml
+metadata:
+    link: https://github.com/RaccoonlabDev/docs/releases/download/v1.6.5/gnss_v2_cyphal_v1.6.5_c78d47c3.bin
+```
+
+3. Using a Local Path
+
+```yaml
+# config.yaml
+metadata:
+    link: /user/home/firmwares/node.bin
 ```
 
 ### 5. Upload dronecan parameters
