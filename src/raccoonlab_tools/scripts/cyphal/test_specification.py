@@ -265,8 +265,8 @@ class TestBusDataFlowMonitoring:
         cyphal_node = GlobalCyphalNode.get_node()
         node_finder = NodeFinder(cyphal_node)
 
-        tested_node_info = await node_finder.get_tested_node_info()
-        TestBusDataFlowMonitoring.dest_node_name = tested_node_info['name']
+        tested_node_info = await node_finder.get_info()
+        TestBusDataFlowMonitoring.dest_node_name = tested_node_info.name
 
         port_list = await node_finder.get_port_list()
         assert port_list is not None, "uavcan.port.List was not published!"
@@ -375,8 +375,8 @@ class TestRegisterInterface:
         random_string = ''.join(random.choices(string.ascii_lowercase, k=10))
         random_value = uavcan.primitive.String_1_0(random_string)
 
-        tested_node_info = await node_finder.get_tested_node_info()
-        if tested_node_info['name'] in DEBUGGING_TOOLS_NAME:
+        tested_node_info = await node_finder.get_info()
+        if tested_node_info.name in DEBUGGING_TOOLS_NAME:
             return
 
         access_response = await TestRegisterInterface._register_access(register, random_value)

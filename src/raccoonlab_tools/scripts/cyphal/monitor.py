@@ -31,6 +31,8 @@ import reg.udral.service.common.Readiness_0_1
 
 from raccoonlab_tools.common.colorizer import Colorizer, Colors
 from raccoonlab_tools.cyphal.utils import NodeFinder, PortRegisterInterface
+from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol
+from raccoonlab_tools.common.device_manager import DeviceManager
 
 
 class HighColorPub:
@@ -82,11 +84,14 @@ class BaseSubscriber:
         self.port_interface = PortRegisterInterface(self.node)
     async def init(self):
         self._id = await self.port_interface.get_id(self.node_id, self.reg_name)
-        assert self._id is not None, f"{self.reg_name} is not exist"
+        if self._id is None:
+            print(f"[WARN] {self.reg_name} is not exist")
+            return
+
         self.id_updated = (self._id == 0) or (self._id > 8191)
 
         if self.id_updated:
-            self._id = self.port_interface.set_id(self.node_id, self.reg_name, self.def_id)
+            self._id = await self.port_interface.set_id(self.node_id, self.reg_name, self.def_id)
         assert isinstance(self._id, int), self.reg_name
         self.sub = self.node.make_subscriber(self.data_type, self._id).receive_in_background(self.callback)
 
@@ -160,7 +165,8 @@ class BaroTemperatureSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2101, reg_name="uavcan.pub.zubax.baro.temp.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.temperature.Scalar_1_0)
     def print_data(self):
-        print(f"- zubax.baro.temp ({self.get_id_string()}): {self.data.kelvin:.2f} Kelvin")
+        value = self.data.pascal if self.data is not None else 0.0
+        print(f"- zubax.baro.temp ({self.get_id_string()}): {value:.2f} Kelvin")
 
 class SetpointSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2342, reg_name="uavcan.pub.udral.esc.0.id") -> None:
@@ -190,10 +196,13 @@ class ReadinessSub(BaseSubscriber):
         print(f"- udral.readiness.0 ({self.get_id_string()}): {value} ({mapping[value]})")
 
 class BaseMonitor:
-    def __init__(self, node) -> None:
+    def __init__(self, node, node_id) -> None:
+        assert isinstance(node, pycyphal.application._node_factory.SimpleNode)
+        assert isinstance(node_id, int)
         self.subs = []
         self.pubs = []
         self.node = node
+        self.node_id = node_id
 
     async def init(self):
         for sub in self.subs:
@@ -209,7 +218,7 @@ class BaseMonitor:
 
     @staticmethod
     def get_latest_sw_version() -> int:
-        return 0
+        return ""
 
     @staticmethod
     def get_vssc_meaning(vssc : int) -> str:
@@ -217,9 +226,8 @@ class BaseMonitor:
 
 
 class GpsMagBaroMonitor(BaseMonitor):
-    def __init__(self, node, node_id) -> None:
-        super().__init__(node)
-        self.node_id = node_id
+    def __init__(self, node : pycyphal.application._node_factory.SimpleNode, node_id : int) -> None:
+        super().__init__(node, node_id)
 
         self.subs = [
             GpsSatsSub(node, node_id),
@@ -231,7 +239,7 @@ class GpsMagBaroMonitor(BaseMonitor):
 
     @staticmethod
     def get_latest_sw_version() -> int:
-        return 0xc78d47c3c9744f55
+        return "c78d47c3c9744f55"
 
     def get_vssc_meaning(self, vssc: int) -> str:
         bitmask = [
@@ -257,7 +265,7 @@ class GpsMagBaroMonitor(BaseMonitor):
 
 class UavLightsMonitor(BaseMonitor):
     def __init__(self, node, node_id) -> None:
-        super().__init__(node)
+        super().__init__(node, node_id)
         self.node_id = node_id
 
         self.subs = [
@@ -270,7 +278,7 @@ class UavLightsMonitor(BaseMonitor):
 
 class PX4Monitor(BaseMonitor):
     def __init__(self, node, node_id) -> None:
-        super().__init__(node)
+        super().__init__(node, node_id)
         self.node_id = node_id
         self.subs = [
             SetpointSub(node, node_id),
@@ -294,35 +302,20 @@ class RLConfigurator:
         heartbeat_sub = self.node.make_subscriber(uavcan.node.Heartbeat_1_0)
         heartbeat_sub.receive_in_background(self._heartbeat_callback)
 
-        info, name, node_monitor = await self._find_node()
+        info, node_monitor = await self._find_node()
 
         await asyncio.sleep(0.1)
         while True:
             os.system('clear')
             print("RaccoonLab monitor")
-            print("Node info:")
-            print(f"- Name: {name}")
+            info.print_info(node_monitor.get_latest_sw_version())
 
-            print(f"- SW: ", end='')
-            sw_version_string = f"v{info['sw_version'][0]}.{info['sw_version'][1]}_{hex(info['git_hash'])[2:]}"
-            if node_monitor.get_latest_sw_version() == 0:
-                print(f"{sw_version_string} (SW history is unknown)")
-            elif info['git_hash'] == node_monitor.get_latest_sw_version():
-                print(f"{sw_version_string} (latest)")
-            else:
-                print(f"{Colors.FAIL}{sw_version_string} (need update){Colors.ENDC}")
-
-            hw_version_string = f"v{info['hw_version'][0]}.{info['hw_version'][1]}"
-            print(f"- HW: {hw_version_string}")
-
-
-            print(f"- ID: {self.node_id}")
+            print("Node status:")
             print(f"- Health: {Colorizer.health_to_string(self.heartbeat.health.value)}")
             print(f"- Mode: {Colorizer.mode_to_string(self.heartbeat.mode.value)}")
             print(f"- VSSC: {node_monitor.get_vssc_meaning(self.heartbeat.vendor_specific_status_code)}")
-
-            print(f"- UID: {info['uid']}")
             print(f"- Uptime: {self.heartbeat.uptime}")
+
             await node_monitor.process()
             await asyncio.sleep(0.1)
 
@@ -334,32 +327,56 @@ class RLConfigurator:
             self.node_id = await node_finder.find_online_node(timeout=5.0)
 
         # 2. Define node name
-        info = await node_finder.get_tested_node_info()
-        name = info['name']
-        if name == 'co.raccoonlab.gps_mag_baro':
-            print(f"Node `{name}` has been found.")
-            node = GpsMagBaroMonitor(self.node, self.node_id)
-        elif name == 'co.raccoonlab.lights':
-            print(f"Node `{name}` has been found.")
-            node = UavLightsMonitor(self.node, self.node_id)
-        elif name == 'PX4_FMU_V5':
-            print(f"Node `{name}` has been found.")
-            node = PX4Monitor(self.node, self.node_id)
-        elif name == 'co.raccoonlab.mini':
-            print(f"Node `{name}` has been found.")
-            node = BaseMonitor(self.node)
+        known_nodes = {
+            'co.raccoonlab.gps_mag_baro' : GpsMagBaroMonitor,
+            'co.raccoonlab.lights' : UavLightsMonitor,
+            'PX4_FMU_V5' : PX4Monitor,
+            'co.raccoonlab.mini' : BaseMonitor,
+        }
+        info = await node_finder.get_info()
+        if info.name in known_nodes:
+            node = known_nodes[info.name](self.node, self.node_id)
         else:
-            print(f"Unknown node `{name}` has been found. Exit")
+            print(f"Unknown node `{info.name}` has been found. Exit")
             sys.exit(0)
 
+        print(f"Node `{info.name}` has been found.")
         await node.init()
-        return info, name, node
+        return info, node
 
     async def _heartbeat_callback(self, data, transfer_from):
         if self.node_id == transfer_from.source_node_id:
             self.heartbeat = data
 
+def scan_for_can_sniffer() -> str:
+    all_sniffers = DeviceManager().get_all_online_sniffers()
+    if len(all_sniffers) == 0:
+        print("[ERROR] CAN-sniffer has not been automatically found.")
+        sys.exit()
+    else:
+        print("Found CAN-sniffers:")
+        for sniffer in all_sniffers:
+            print(f"- {sniffer}")
+    return all_sniffers[0].port
+
+def define_can_protocol(sniffer_port : str) -> Protocol:
+    assert isinstance(sniffer_port, str)
+    protocol_parser = CanProtocolParser(sniffer_port)
+    protocol = protocol_parser.get_protocol()
+    if protocol == Protocol.UNKNOWN:
+        print(f"[ERROR] Found protocol: {protocol}")
+        sys.exit()
+
+    print(f"Found protocol: {protocol}")
+    return protocol
+
 def main():
+    sniffer_port = scan_for_can_sniffer()
+    can_protocol = define_can_protocol(sniffer_port)
+    if can_protocol != Protocol.CYPHAL:
+        print("[ERROR] Cyphal node has not been found. Exit.")
+        sys.exit(1)
+
     rl_configurator = RLConfigurator()
     try:
         asyncio.run(rl_configurator.main())
