@@ -10,7 +10,11 @@ import numpy as np
 # pylint: disable=import-error
 import uavcan.register.Access_1_0
 import uavcan.register.List_1_0
+import uavcan.register.Name_1_0
+import uavcan.register.Value_1_0
 import uavcan.node.port.List_1_0
+
+from raccoonlab_tools.common.node import NodeInfo
 
 UAVCAN_PUB = "uavcan.pub"
 UAVCAN_SUB = "uavcan.sub"
@@ -51,7 +55,7 @@ class NodeFinder:
 
         return NodeFinder.target_node_id
 
-    async def get_tested_node_info(self) -> dict:
+    async def get_info(self) -> dict:
         """Return a dictionary on success. Otherwise return None."""
         dest_node_id = await self.find_online_node()
 
@@ -59,29 +63,20 @@ class NodeFinder:
         client = self.node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
         for attempt in range(3):
             if attempt == 0:
-                print(f"NodeInfo: send request to {dest_node_id}")
+                print(f"[DEBUG] NodeInfo: send request to {dest_node_id}")
             else:
-                print(f"NodeInfo: send request to {dest_node_id} ({attempt + 1})")
+                print(f"[DEBUG] NodeInfo: send request to {dest_node_id} ({attempt + 1})")
             response = await client.call(request)
             if response is not None:
                 break
         client.close()
 
         if response is not None:
-            response = response[0]
-            uid_size = 12 if np.all(response.unique_id[12:] == 0) else 16
-            uid = ''.join(format(x, '02X') for x in response.unique_id[0:uid_size])
-            res = {
-                'name'       : _np_array_to_string(response.name),
-                'hw_version' : (response.hardware_version.major, response.hardware_version.minor),
-                'sw_version' : (response.software_version.major, response.software_version.minor),
-                'git_hash'   : response.software_vcs_revision_id,
-                'uid'        : uid
-            }
+            node_info = NodeInfo.create_from_cyphal_response(response)
         else:
-            print(f"Node {dest_node_id} has not respond to NodeInfo request.")
-            res = None
-        return res
+            print(f"[WARN] Node {dest_node_id} has not respond to NodeInfo request.")
+            node_info = None
+        return node_info
 
     async def get_port_list(self, timeout : float = 10.1) -> uavcan.node.port.List_1_0:
         dest_node_id = await self.find_online_node()
@@ -170,24 +165,35 @@ class PortRegisterInterface:
         self.registers = RegisterInterface(self.node)
 
     async def get_id(self, dest_node_id : int, register_name : str) -> int:
-        assert isinstance(dest_node_id, int)
+        assert isinstance(dest_node_id, int) and dest_node_id >= 1 and dest_node_id <= 127
         assert isinstance(register_name, str)
 
-        value = await self.registers.register_acess(dest_node_id, register_name)
+        read_value = await self.registers.register_acess(dest_node_id, register_name)
 
-        if register_name is None or value.natural16 is None:
-            return 65535
+        if read_value is None:
+            print(f"[WARN] Register {register_name} has not been responded")
+            return None
 
-        return int(value.natural16.value[0])
+        if read_value.natural16 is None:
+            print(f"[ERROR] Register {register_name} is not natural16")
+            return None
+
+        return int(read_value.natural16.value[0])
 
     async def set_id(self, dest_node_id : int, register_name : str, value : int) -> int:
-        assert isinstance(dest_node_id, int)
+        assert isinstance(dest_node_id, int) and dest_node_id >= 1 and dest_node_id <= 127
         assert isinstance(register_name, str)
+        assert isinstance(value, int) and value >= 1 and value <= 65535
 
-        set_value = uavcan.register.Value_1_0(natural16=value)
+        set_value = uavcan.register.Value_1_0(natural16=uavcan.primitive.array.Natural16_1_0(value))
         read_value = await self.registers.register_acess(dest_node_id, register_name, set_value)
 
-        if register_name is None or read_value.natural16 is None:
+        if read_value is None:
+            print(f"[WARN] Register {register_name} has not been responded")
+            return None
+
+        if read_value.natural16 is None:
+            print(f"[ERROR] Register {register_name} is not natural16")
             return None
 
         return int(read_value.natural16.value[0])

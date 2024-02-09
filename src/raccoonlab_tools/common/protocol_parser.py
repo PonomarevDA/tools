@@ -59,14 +59,19 @@ class CanMessage:
         return self.msg.arbitration_id % 128
 
 class CanProtocolParser:
-    def __init__(self, channel='/dev/ttyACM0') -> None:
+    def __init__(self, channel) -> None:
         self.protocol = Protocol.UNKNOWN
         self.node_id = None
 
         with can.Bus(interface='slcan', channel=channel, ttyBaudrate=1000000, bitrate=1000000) as bus:
             self.protocol = Protocol.UNKNOWN
             for _ in range(100):
-                can_frame = bus.recv()
+                try:
+                    can_frame = bus.recv()
+                except (ValueError, IndexError) as err:
+                    print(f"[WARN] {err}")
+                    continue
+
                 if len(can_frame.data) != 8:
                     continue
                 msg = CanMessage(can_frame)
@@ -75,7 +80,7 @@ class CanProtocolParser:
                 if self.protocol is not Protocol.UNKNOWN:
                     break
 
-    def get_protocol(self):
+    def get_protocol(self) -> Protocol:
         return self.protocol
 
     def get_node_id(self):

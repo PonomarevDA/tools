@@ -30,6 +30,8 @@ rl-test-cyphal-specification
 rl-test-dronecan-specification
 ```
 
+![](https://github.com/PonomarevDA/tools/blob/docs/assets/rl-test-dronecan-specification.gif?raw=true)
+
 ### 3. Check protocol
 
 ```bash
@@ -88,6 +90,9 @@ params:
     uavcan.node_id: 31
     uavcan.node.name: co.rl.mini
 ```
+
+![](https://github.com/PonomarevDA/tools/blob/docs/assets/rl-dronecan-config.gif?raw=true)
+
 
 ### 6. Cyphal monitor
 

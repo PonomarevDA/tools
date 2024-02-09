@@ -6,6 +6,7 @@
 import dronecan
 from typing import Union
 from dataclasses import dataclass
+from raccoonlab_tools.common.node import NodeInfo
 
 @dataclass
 class Parameter:
@@ -103,32 +104,50 @@ class NodeFinder:
     Possible target nodes id are [0, 126].
     Node ID 127 is intentionally ignored because it is usually occupied by debugging tools.
     """
-    target_node_id = None
+    node_id = None
     black_list = [127]
 
     def __init__(self, dronecan_node : dronecan.node.Node) -> None:
-        self.node = dronecan_node
+        self._node = dronecan_node
+        self._response = None
 
     def find_online_node(self, time_left_sec : float = 1.1) -> int:
         assert isinstance(time_left_sec, float)
 
-        if NodeFinder.target_node_id is not None:
-            return NodeFinder.target_node_id
+        if NodeFinder.node_id is not None:
+            return NodeFinder.node_id
 
-        handler = self.node.add_handler(dronecan.uavcan.protocol.NodeStatus, self._node_status_cb)
+        handler = self._node.add_handler(dronecan.uavcan.protocol.NodeStatus, self._node_status_cb)
         while time_left_sec > 0.0:
             time_left_sec -= 0.005
-            self.node.spin(0.005)
-            if NodeFinder.target_node_id is not None:
+            self._node.spin(0.005)
+            if NodeFinder.node_id is not None:
                 break
         handler.remove()
 
-        return NodeFinder.target_node_id
+        return NodeFinder.node_id
+
+    def get_info(self) -> NodeInfo:
+        node_id = self.find_online_node()
+        assert node_id >= 1 and node_id <= 127
+
+        self._response = None
+        get_node_info_request = dronecan.uavcan.protocol.GetNodeInfo.Request()
+        self._node.request(get_node_info_request, node_id, self._node_info_response_cb)
+        for _ in range(20):
+            self._node.spin(0.005)
+            if self._response is not None:
+                return NodeInfo.create_from_dronecan_get_info_response(self._response)
+
+        return None
 
     def _node_status_cb(self, transfer : dronecan.node.TransferEvent):
         source_node_id = transfer.transfer.source_node_id
         if source_node_id not in NodeFinder.black_list:
-            NodeFinder.target_node_id = source_node_id
+            NodeFinder.node_id = source_node_id
+
+    def _node_info_response_cb(self, transfer):
+        self._response = transfer
 
 class NodeCommander:
     """
