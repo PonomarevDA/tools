@@ -20,11 +20,7 @@ class DronecanNode:
     node = None
     def __init__(self) -> None:
         if DronecanNode.node is None:
-            all_sniffers = DeviceManager().get_all_online_sniffers()
-            if len(all_sniffers) == 0:
-                print("[ERROR] CAN-sniffer has not been automatically found.")
-                sys.exit(1)
-            can_transport = f'slcan:{all_sniffers[0].port}'
+            can_transport = f'slcan:{DeviceManager.find_sniffer_or_exit()}'
             DronecanNode.node = dronecan.make_node(can_transport,
                                                    node_id=100,
                                                    bitrate=1000000,

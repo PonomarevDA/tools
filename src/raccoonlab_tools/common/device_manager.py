@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 from dataclasses import dataclass
 import serial.tools.list_ports
 
@@ -21,7 +22,14 @@ KNOWN_PROGRAMMERS = [
 
 class DeviceManager:
     @staticmethod
-    def get_all_online_sniffers() -> list:
+    def find_sniffer_or_exit(verbose=False):
+        sniffers = DeviceManager().find_sniffers(verbose)
+        if len(sniffers) == 0:
+            sys.exit()
+        return sniffers[0].port
+
+    @staticmethod
+    def find_sniffers(verbose=False) -> list:
         sniffers = []
         ports = serial.tools.list_ports.comports()
         for port, desc, hwid in sorted(ports):
@@ -30,34 +38,37 @@ class DeviceManager:
                     known_sniffer.port = port
                     sniffers.append(known_sniffer)
                     break
+
+        if len(sniffers) == 0:
+            print("[ERROR] CAN-sniffer has not been automatically found.")
+        elif verbose:
+            print("Online CAN-sniffers:")
+            for sniffer in sniffers:
+                print(f"- {sniffer}")
+
         return sniffers
 
     @staticmethod
-    def get_all_online_programmers() -> list:
-        programmer = []
+    def find_programmers(verbose=True) -> list:
+        programmers = []
         ports = serial.tools.list_ports.comports()
         for port, desc, hwid in sorted(ports):
             for known_programmer in KNOWN_PROGRAMMERS:
                 if desc == known_programmer.desc or hwid.startswith(known_programmer.hwid):
                     known_programmer.port = port
-                    programmer.append(known_programmer)
+                    programmers.append(known_programmer)
                     break
-        return programmer
 
-    @staticmethod
-    def print_all_online_sniffers():
-        sniffers = DeviceManager.get_all_online_sniffers()
-        print("Online CAN-sniffers:")
-        for sniffer in sniffers:
-            print(f"- {sniffer}")
+        if len(programmers) == 0:
+            print("[ERROR] STM32-programmer has not been automatically found.")
+        elif verbose:
+            print("Online STM32-programmers:")
+            for programmer in programmers:
+                print(f"- {programmer}")
 
-    @staticmethod
-    def print_all_online_programmers():
-        programmers = DeviceManager.get_all_online_programmers()
-        print("Online programmers:")
-        for programmer in programmers:
-            print(f"- {programmer}")
+        return programmers
+
 
 if __name__ == "__main__":
-    DeviceManager.print_all_online_sniffers()
-    DeviceManager.print_all_online_programmers()
+    DeviceManager.find_sniffers(verbose=True)
+    DeviceManager.find_programmers(verbose=True)

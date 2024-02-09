@@ -51,15 +51,16 @@ class TailByte:
 
 class CanMessage:
     def __init__(self, msg) -> None:
-        self.msg = msg
-        self.tail_byte = TailByte(self.msg.data[7])
+        self._msg = msg
+        self._tail_byte = TailByte(self._msg.data[7])
     def get_protocol(self):
-        return self.tail_byte.get_protocol()
+        return self._tail_byte.get_protocol()
     def get_node_id(self):
-        return self.msg.arbitration_id % 128
+        return self._msg.arbitration_id % 128
 
 class CanProtocolParser:
-    def __init__(self, channel) -> None:
+    def __init__(self, channel : str) -> None:
+        assert isinstance(channel, str)
         self.protocol = Protocol.UNKNOWN
         self.node_id = None
 
@@ -80,19 +81,33 @@ class CanProtocolParser:
                 if self.protocol is not Protocol.UNKNOWN:
                     break
 
-    def get_protocol(self) -> Protocol:
-        return self.protocol
+    @staticmethod
+    def get_protocol(sniffer, verbose=False) -> Protocol:
+        assert isinstance(sniffer, str)
+        assert isinstance(verbose, bool)
+        parser = CanProtocolParser(sniffer)
+        if parser.protocol == Protocol.UNKNOWN:
+            print(f"[ERROR] Neither Cyphal or DroneCAN protocol can be automatically determined.")
+        elif verbose:
+            print(f"Found protocol: {parser.protocol}")
+
+        return parser.protocol
+
+    @staticmethod
+    def verify_protocol(sniffer, white_list=[Protocol.CYPHAL, Protocol.DRONECAN], verbose=False):
+        assert isinstance(sniffer, str)
+        assert isinstance(white_list, list)
+        assert isinstance(verbose, bool)
+        protocol = CanProtocolParser.get_protocol(sniffer, verbose=True)
+        if protocol not in white_list:
+            print(f"[ERROR] Expected protocols are {white_list}.")
+            sys.exit()
+
+        return protocol
 
     def get_node_id(self):
         return self.node_id
 
 if __name__ == "__main__":
-    device_manager = DeviceManager()
-    all_sniffers = device_manager.get_all_online_sniffers()
-    if len(all_sniffers) == 0:
-        print("[ERROR] CAN-sniffer has not been automatically found.")
-        sys.exit(1)
-    sniffer_port = all_sniffers[0].port
-    protocol_parser = CanProtocolParser(sniffer_port)
-    protocol = protocol_parser.get_protocol()
-    print(protocol)
+    sniffer = DeviceManager.find_sniffer_or_exit(verbose=True)
+    CanProtocolParser.get_protocol(sniffer, verbose=True)

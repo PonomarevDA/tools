@@ -9,28 +9,6 @@ from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol
 from raccoonlab_tools.common.device_manager import DeviceManager
 from raccoonlab_tools.common.node import NodeInfo
 
-def scan_for_can_sniffer() -> str:
-    all_sniffers = DeviceManager().get_all_online_sniffers()
-    if len(all_sniffers) == 0:
-        print("[ERROR] CAN-sniffer has not been automatically found.")
-        sys.exit()
-    else:
-        print("Found CAN-sniffers:")
-        for sniffer in all_sniffers:
-            print(f"- {sniffer}")
-    return all_sniffers[0].port
-
-def define_can_protocol(sniffer_port : str) -> Protocol:
-    assert isinstance(sniffer_port, str)
-    protocol_parser = CanProtocolParser(sniffer_port)
-    protocol = protocol_parser.get_protocol()
-    if protocol == Protocol.UNKNOWN:
-        print(f"[ERROR] Found protocol: {protocol}")
-        sys.exit()
-
-    print(f"Found protocol: {protocol}")
-    return protocol
-
 async def get_info_cyphal() -> NodeInfo:
     import pycyphal
     import pycyphal.application
@@ -55,13 +33,13 @@ def get_info_dronecan(sniffer_port : str) -> NodeInfo:
     return NodeFinder(node).get_info()
 
 def main():
-    sniffer_port = scan_for_can_sniffer()
-    can_protocol = define_can_protocol(sniffer_port)
+    sniffer = DeviceManager.find_sniffer_or_exit(verbose=True)
+    can_protocol = CanProtocolParser.verify_protocol(sniffer, verbose=True)
     if can_protocol == Protocol.DRONECAN:
-        node_info = get_info_dronecan(sniffer_port)
+        node_info = get_info_dronecan(sniffer)
     elif can_protocol == Protocol.CYPHAL:
         node_info = asyncio.run(get_info_cyphal())
-    print(node_info)
+    node_info.print_info("")
 
 
 if __name__ == "__main__":
