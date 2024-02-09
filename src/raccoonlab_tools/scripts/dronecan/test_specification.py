@@ -3,12 +3,14 @@
 # Copyright (c) 2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
+import sys
 import time
 import os
 import subprocess
 import dronecan
 import pytest
 
+from raccoonlab_tools.common.device_manager import DeviceManager
 
 HEALTH_OK = 0
 MODE_OPERATIONAL = 0
@@ -18,7 +20,13 @@ class DronecanNode:
     node = None
     def __init__(self) -> None:
         if DronecanNode.node is None:
-            DronecanNode.node = dronecan.make_node('slcan:/dev/ttyACM0',
+            all_sniffers = DeviceManager().get_all_online_sniffers()
+            if len(all_sniffers) == 0:
+                print("[ERROR] CAN-sniffer has not been automatically found.")
+                sys.exit(1)
+            can_transport = f'slcan:{all_sniffers[0].port}'
+            DronecanNode.node = dronecan.make_node(can_transport,
+                                                   node_id=100,
                                                    bitrate=1000000,
                                                    baudrate=1000000)
         self.msg = None
