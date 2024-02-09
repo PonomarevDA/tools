@@ -104,6 +104,27 @@ Usage example:
 
 ![](https://github.com/PonomarevDA/tools/wiki/assets/monitor_gnss.gif)
 
+### 7. U-center with Cyphal GNSS
+
+```bash
+rl-ublox-center
+```
+
+For RL GNSS it is possible to run u-center over Cyphal via `gps.ubx_tx` and `gps.ubx_rx` topics.
+
+1. Download [u-center](https://www.u-blox.com/en/product/u-center) (tested with u-center 23.08)
+2. Run the u-center. On ubuntu you can use wine (`wine64 u-centersetup_v23.08/u-center_v23.08.exe`)
+3. Configure the Cyphal environment
+4. Run the script `rl-ublox-center`
+5. Press Receiver - > Connection -> Network connection
+6. Add new connection `tcp://127.0.0.1:2001`
+
+An illustration:
+
+![](https://github.com/PonomarevDA/tools/blob/docs/assets/gnss/ucenter/network_connection.png?raw=true)
+
+![](https://github.com/PonomarevDA/tools/blob/docs/assets/gnss/ucenter/address.png?raw=true)
+
 <!--
 
 ### 6. Upload cyphal parameters

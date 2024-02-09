@@ -76,9 +76,8 @@ async def test_transport():
     if not can_iface.startswith('slcan:'):
         return  # Skip of SocketCAN or other interface
 
-    sniffer_port = can_iface[6:]
-    can_protocol_parser = CanProtocolParser(sniffer_port)
-    assert can_protocol_parser.get_protocol() == Protocol.CYPHAL
+    sniffer = can_iface[6:]
+    assert CanProtocolParser.get_protocol(sniffer) == Protocol.CYPHAL
 
 
 @pytest.mark.asyncio

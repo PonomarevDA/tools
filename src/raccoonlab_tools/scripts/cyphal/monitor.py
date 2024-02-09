@@ -165,7 +165,7 @@ class BaroTemperatureSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2101, reg_name="uavcan.pub.zubax.baro.temp.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.temperature.Scalar_1_0)
     def print_data(self):
-        value = self.data.pascal if self.data is not None else 0.0
+        value = self.data.kelvin if self.data is not None else 0.0
         print(f"- zubax.baro.temp ({self.get_id_string()}): {value:.2f} Kelvin")
 
 class SetpointSub(BaseSubscriber):
@@ -348,34 +348,10 @@ class RLConfigurator:
         if self.node_id == transfer_from.source_node_id:
             self.heartbeat = data
 
-def scan_for_can_sniffer() -> str:
-    all_sniffers = DeviceManager().get_all_online_sniffers()
-    if len(all_sniffers) == 0:
-        print("[ERROR] CAN-sniffer has not been automatically found.")
-        sys.exit()
-    else:
-        print("Found CAN-sniffers:")
-        for sniffer in all_sniffers:
-            print(f"- {sniffer}")
-    return all_sniffers[0].port
-
-def define_can_protocol(sniffer_port : str) -> Protocol:
-    assert isinstance(sniffer_port, str)
-    protocol_parser = CanProtocolParser(sniffer_port)
-    protocol = protocol_parser.get_protocol()
-    if protocol == Protocol.UNKNOWN:
-        print(f"[ERROR] Found protocol: {protocol}")
-        sys.exit()
-
-    print(f"Found protocol: {protocol}")
-    return protocol
 
 def main():
-    sniffer_port = scan_for_can_sniffer()
-    can_protocol = define_can_protocol(sniffer_port)
-    if can_protocol != Protocol.CYPHAL:
-        print("[ERROR] Cyphal node has not been found. Exit.")
-        sys.exit(1)
+    sniffer = DeviceManager.find_sniffer_or_exit(verbose=True)
+    CanProtocolParser.verify_protocol(sniffer, white_list=[Protocol.CYPHAL], verbose=True)
 
     rl_configurator = RLConfigurator()
     try:

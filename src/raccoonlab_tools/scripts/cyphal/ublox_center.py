@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 import asyncio
 import sys
-import pathlib
 import logging
 import socket
+from argparse import ArgumentParser
 import numpy
 
-repo_dir = pathlib.Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(repo_dir / "build/nunavut_out"))
-sys.path.insert(0, str(repo_dir / "cyphal"))
-
-from fragments import CyphalFragmentSub, CyphalFragmentPub
-from utils import PortRegisterInterface
 import pycyphal.application
-from uavcan.node import GetInfo_1_0
+from uavcan.node import GetInfo_1_0  # pylint: disable=import-error
 
+from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol
+from raccoonlab_tools.common.device_manager import DeviceManager
+from raccoonlab_tools.cyphal.fragments import CyphalFragmentSub, CyphalFragmentPub
+from raccoonlab_tools.cyphal.utils import PortRegisterInterface
 
 class UbloxCenter:
     """
@@ -76,7 +74,7 @@ class CyphalGnss:
     UBX_RX_REG = "uavcan.sub.gps.ubx_rx.id"
     UBX_TX_REG = "uavcan.pub.gps.ubx_tx.id"
     @staticmethod
-    async def create(node, gnss_id):
+    async def create(node, gnss_id, attempts_left=1):
         port_interface = PortRegisterInterface(node)
         fragment_pub_port_id = await port_interface.get_id(gnss_id, CyphalGnss.UBX_RX_REG)
         fragment_sub_port_id = await port_interface.get_id(gnss_id, CyphalGnss.UBX_TX_REG)
@@ -88,8 +86,12 @@ class CyphalGnss:
         if fragment_sub_port_id == 65535:
             logging.error("GNSS node: %s is not configured.", CyphalGnss.UBX_TX_REG)
             config_required = True
-        if config_required:
-            sys.exit(-1)
+
+        if config_required and attempts_left > 0:
+            logging.info("Let's try to configure the registers, Attempts left = %s", attempts_left)
+            await port_interface.set_id(gnss_id, CyphalGnss.UBX_RX_REG, 4000)
+            await port_interface.set_id(gnss_id, CyphalGnss.UBX_TX_REG, 4001)
+            return CyphalGnss.create(node, gnss_id, attempts_left - 1)
 
         return CyphalGnss(node, fragment_pub_port_id, fragment_sub_port_id)
 
@@ -106,7 +108,7 @@ class CyphalGnss:
         await self._fragment_pub.publish(msg)
 
 
-async def main(dest_node_id):
+async def application_entry_point(dest_node_id):
     cyphal_node = pycyphal.application.make_node(GetInfo_1_0.Response(name="ubx"))
     cyphal_node.start()
     logging.debug("Cyphal node created.")
@@ -124,8 +126,7 @@ async def main(dest_node_id):
         await asyncio.sleep(1)
 
 
-if __name__ == "__main__":
-    from argparse import ArgumentParser
+def main():
     parser = ArgumentParser(description='U-center over Cyphal')
     parser.add_argument("--verbose", default=False, action='store_true', help="Verbose mode")
     args = parser.parse_args()
@@ -133,7 +134,13 @@ if __name__ == "__main__":
     logging.getLogger("asyncio").setLevel(logging.CRITICAL)
     logging.getLogger().setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
+    sniffer = DeviceManager.find_sniffer_or_exit(verbose=True)
+    CanProtocolParser.verify_protocol(sniffer, white_list=[Protocol.CYPHAL], verbose=True)
+
     try:
-        asyncio.run(main(dest_node_id=50))
+        asyncio.run(application_entry_point(dest_node_id=50))
     except KeyboardInterrupt:
         pass
+
+if __name__ == "__main__":
+    main()

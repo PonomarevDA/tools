@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-import sys
-import pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "build/nunavut_out"))
 import pycyphal.application
 import uavcan.metatransport.serial.Fragment_0_2 as Fragment_0_2
 
