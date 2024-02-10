@@ -435,7 +435,7 @@ def main():
            "--asyncio-mode=auto",
            '-W', 'ignore::DeprecationWarning']
     cmd += sys.argv[1:]
-    subprocess.call(cmd)
+    sys.exit(subprocess.call(cmd))
 
 if __name__ == "__main__":
     main()

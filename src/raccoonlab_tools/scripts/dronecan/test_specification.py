@@ -67,7 +67,7 @@ class TestNodeStatus:
 def main():
     cmd = ["pytest", os.path.abspath(__file__), "-v", '-W', 'ignore::DeprecationWarning']
     cmd += sys.argv[1:]
-    subprocess.call(cmd)
+    sys.exit(subprocess.call(cmd))
 
 if __name__ == "__main__":
     main()
