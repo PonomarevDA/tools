@@ -6,13 +6,29 @@
 
 > This package is under development. It is avaliable in [test.pypi](https://test.pypi.org/project/raccoonlab-tools/) at the moment.
 
-## Usage
+## Preparation
 
-Install the package from test.pypi and then run the desired script:
+1. Install the package either from test.pypi or from sources:
+    ```bash
+    pip install -i https://test.pypi.org/simple/ raccoonlab-tools
+    ```
+    ```bash
+    git clone https://github.com/PonomarevDA/tools.git
+    cd tools
+    pip install .
+    ```
+2. Clone the nodes config files somewhere. We recommend `~/.raccoonlab_tools/vendors` For example:
+    ```bash
+    mkdir -p ~/.raccoonlab_tools/vendors/raccoonlab
+    cd ~/.raccoonlab_tools/vendors/raccoonlab
+    git clone https://github.com/RaccoonlabDev/raccoonlab_nodes_configs.git .
+    ```
+3. Install additional dependencies if you want to upload a firmware with STM32-programmer:
+    - On ubuntu install [stlink](https://github.com/stlink-org/stlink),
+    - On Windows install [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) to the default directory.
 
-```
-pip install -i https://test.pypi.org/simple/ raccoonlab-tools
-```
+4. Before working with a Cyphal node, you should configure the Cyphal-related environment variables.
+Check Cyphal for help. You can use [scripts/cyphal](scripts/cyphal) as a hint.
 
 ### 1. Test cyphal specification
 
@@ -49,10 +65,14 @@ Return:
 ### 4. Upload firmware with st-link linux / STM32CubeProgrammer Windows
 
 ```bash
-rl-upload-firmware --config PATH
+rl-upload-firmware --config PATH_TO_YAML_CONFIG
 ```
 
-There are 3 ways how you can specify the path to the binary:
+```bash
+rl-upload-firmware --binary PATH_TO_BIN_FILE
+```
+
+There are a few ways how you can specify the path to the binary:
 
 1. (recommended) Using a GitHub Repository. It will always download the latest released firmware.
 
@@ -77,6 +97,8 @@ metadata:
 metadata:
     link: /user/home/firmwares/node.bin
 ```
+
+4. Direct .bin path with `--binary` option
 
 ### 5. Upload dronecan parameters
 
