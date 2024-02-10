@@ -64,7 +64,17 @@ class CanProtocolParser:
         self.protocol = Protocol.UNKNOWN
         self.node_id = None
 
-        with can.Bus(interface='slcan', channel=channel, ttyBaudrate=1000000, bitrate=1000000) as bus:
+        self._parse_protocol(channel)
+
+    def _parse_protocol(self, channel : str):
+        if channel.startswith("slcan"):
+            config = {"interface": "socketcan", "channel": channel}
+        elif channel.startswith("/dev/") or channel.startswith("COM"):
+            config = {"interface": "slcan", "channel": channel, "ttyBaudrate": 1000000, "bitrate": 1000000}
+        else:
+            assert False, f"Unsupported interface {channel}"
+
+        with can.Bus(**config) as bus:
             self.protocol = Protocol.UNKNOWN
             for _ in range(100):
                 try:
@@ -81,16 +91,17 @@ class CanProtocolParser:
                 if self.protocol is not Protocol.UNKNOWN:
                     break
 
+
     @staticmethod
-    def find_protocol(sniffer=None, verbose=False) -> Protocol:
+    def find_protocol(transport=None, verbose=False) -> Protocol:
         """ Gently try to guess the protocol. Does Not raise an exception."""
-        assert isinstance(sniffer, str) or sniffer is None
+        assert isinstance(transport, str) or transport is None
         assert isinstance(verbose, bool)
 
-        if sniffer is None:
-            sniffer = DeviceManager.get_sniffer(verbose=verbose)
+        if transport is None:
+            transport = DeviceManager.get_transport(verbose=verbose)
 
-        parser = CanProtocolParser(sniffer)
+        parser = CanProtocolParser(transport)
         if parser.protocol == Protocol.UNKNOWN:
             print(f"[ERROR] Neither Cyphal or DroneCAN protocol can be automatically determined.")
         elif verbose:
@@ -99,12 +110,12 @@ class CanProtocolParser:
         return parser.protocol
 
     @staticmethod
-    def verify_protocol(sniffer=None, white_list=[Protocol.CYPHAL, Protocol.DRONECAN], verbose=False):
+    def verify_protocol(transport=None, white_list=[Protocol.CYPHAL, Protocol.DRONECAN], verbose=False):
         """ Return the protocol if it is possible, otherwise rise an exception."""
-        assert isinstance(sniffer, str) or sniffer is None
+        assert isinstance(transport, str) or transport is None
         assert isinstance(white_list, list)
         assert isinstance(verbose, bool)
-        protocol = CanProtocolParser.find_protocol(sniffer, verbose=True)
+        protocol = CanProtocolParser.find_protocol(transport, verbose=True)
         if protocol not in white_list:
             raise Exception(f"[ERROR] Expected protocols are {white_list}.")
 
@@ -114,5 +125,5 @@ class CanProtocolParser:
         return self.node_id
 
 if __name__ == "__main__":
-    sniffer = DeviceManager.get_sniffer(verbose=True)
-    CanProtocolParser.find_protocol(sniffer, verbose=True)
+    transport = DeviceManager.get_transport(verbose=True)
+    CanProtocolParser.find_protocol(transport, verbose=True)

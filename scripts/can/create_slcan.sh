@@ -1,7 +1,7 @@
 #!/bin/bash
-# https://github.com/PonomarevDA/tools/blob/main/can/create_slcan.sh
+# wget https://raw.githubusercontent.com/PonomarevDA/tools/main/scripts/can/create_slcan.sh
 # This software is distributed under the terms of the MIT License.
-# Copyright (c) 2023 Dmitry Ponomarev.
+# Copyright (c) 2023-2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
 SCRIPT_NAME=$(basename $BASH_SOURCE)
@@ -17,12 +17,32 @@ options:
     -d, --device DEV_PATH           Specify device path manually instead of trying to find it
                                     among known sniffers. Example: /dev/ttyACM0.
     -i, --interface INTERFACE       Specify custom interface. By default it attach it to slcan0.
+    -r, --remove                    Remove interface.
+    -v, --virtual-can               Create virtual CAN interface.
     -o, --only-find                 Do not create the interface, only look for a sniffer.
-    -h, --help                      Show this help message and exit."
+    -h, --help                      Show this help message and exit.
+
+UC1. Create slcan0 based on a CAN-sniffer
+    ./$SCRIPT_NAME
+
+UC2. Remove an existed slcan0 interface
+    ./$SCRIPT_NAME --remove
+
+UC3. Create virtual CAN interface slcan0
+    ./$SCRIPT_NAME -v
+
+UC4. Just check for online CAN-sniffers
+    ./$SCRIPT_NAME -o
+
+UC5. Customize interface name and device path
+    ./$SCRIPT_NAME -d /dev/ttyACM0 -i vcan0
+"
 
 INTERFACE=slcan0
 DEV_PATH=""
 ONLY_FIND="no"
+REMOVE_INTERFACE="no"
+VIRTUAL_CAN="no"
 
 function log_error() {
     lineno=($(caller))
@@ -32,6 +52,10 @@ function log_error() {
 function log_warn() {
     lineno=($(caller))
     printf "$YELLOW$SCRIPT_NAME WARN on line ${lineno}: $1.$NC\n"
+}
+
+function log_info() {
+    printf "$SCRIPT_NAME INFO: $1.\n"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -44,6 +68,14 @@ while [[ $# -gt 0 ]]; do
         -i|--interface)
         INTERFACE="$2"
         shift
+        ;;
+
+        -r|--remove)
+        REMOVE_INTERFACE="yes"
+        ;;
+
+        -v|--virtual-can)
+        VIRTUAL_CAN="yes"
         ;;
 
         -o|--only-find)
@@ -91,8 +123,41 @@ function create_slcan() {
     sudo tc qdisc add dev $INTERFACE root handle 1: pfifo_head_drop limit 1000
 }
 
+function create_virtual_can() {
+    sudo modprobe vcan
+    sudo ip link add dev $INTERFACE type vcan
+    sudo ip link set up $INTERFACE
+}
 
-# Step 1. Define the device path
+function remove_interface() {
+    if [[ $(ifconfig | grep $INTERFACE) ]]; then
+        log_info "Trying to remove $INTERFACE interface.."
+    fi
+    sudo ip link delete $INTERFACE
+    if [[ $(ifconfig | grep $INTERFACE) ]]; then
+        log_warn "Removing $INTERFACE interface failed. Try to reconnect the CAN-sniffer manually"
+    fi
+}
+
+echo "SLCAN creator settings:
+- DEV_PATH=$INTERFACE"
+
+# Step 1. Remove interface if requested
+if [[ $REMOVE_INTERFACE == "yes" ]]; then
+    echo "- REMOVE_INERFACE: yes ($INTERFACE)"
+    remove_interface
+    [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 0 || return 0
+fi
+
+# Step 2.
+if [[ $VIRTUAL_CAN == "yes" ]]; then
+    echo "- VIRTUAL_CAN: yes ($INTERFACE)"
+    create_virtual_can
+    [[ "${BASH_SOURCE[0]}" -ef "$0" ]] && exit 0 || return 0
+fi
+
+
+# Step 2. Define the device path
 if [ -z $DEV_PATH ]; then
     find_sniffer
 
@@ -108,10 +173,8 @@ if [ -z $DEV_PATH ]; then
 fi
 
 
-# Step 2. Create SLCAN based on device path
-echo "SLCAN creator settings:
-- DEV_PATH=$DEV_PATH
-- INTERFACE=$INTERFACE"
+# Step 3. Create SLCAN based on device path
+echo "- INTERFACE=$INTERFACE"
 
 if [[ $(ifconfig | grep $INTERFACE) ]]; then
     log_warn "specified interface already exist, skip"

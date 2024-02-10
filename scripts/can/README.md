@@ -14,16 +14,16 @@ Tools are based on can-utils.
 
 ## 2. Usage
 
-To create SLCAN:
+To create SLCAN based on CAN-sniffer:
 
 ```bash
-./can/create_slcan.sh --help
+./can/create_slcan.sh
 ```
 
 To create virtual CAN:
 
 ```bash
-./can/vcan.sh --help
+./can/create_slcan.sh -v
 ```
 
 ## 3. Notes
