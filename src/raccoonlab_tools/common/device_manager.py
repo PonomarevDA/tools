@@ -22,10 +22,10 @@ KNOWN_PROGRAMMERS = [
 
 class DeviceManager:
     @staticmethod
-    def find_sniffer_or_exit(verbose=False):
+    def get_sniffer(verbose=False):
         sniffers = DeviceManager().find_sniffers(verbose)
         if len(sniffers) == 0:
-            sys.exit()
+            raise Exception("[ERROR] CAN-sniffer has not been automatically found.")
         return sniffers[0].port
 
     @staticmethod

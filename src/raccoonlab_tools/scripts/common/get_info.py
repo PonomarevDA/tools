@@ -33,7 +33,7 @@ def get_info_dronecan(sniffer_port : str) -> NodeInfo:
     return NodeFinder(node).get_info()
 
 def main():
-    sniffer = DeviceManager.find_sniffer_or_exit(verbose=True)
+    sniffer = DeviceManager.get_sniffer(verbose=True)
     can_protocol = CanProtocolParser.verify_protocol(sniffer, verbose=True)
     if can_protocol == Protocol.DRONECAN:
         node_info = get_info_dronecan(sniffer)

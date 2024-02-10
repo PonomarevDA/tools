@@ -1,16 +1,7 @@
 #!/usr/bin/env python3
-import sys
-from pathlib import Path
-
 from raccoonlab_tools.common.printer import Printer
 
-nodes_dir = Path(__file__).resolve().parent.parent
-repo_dir = nodes_dir.parent
-sys.path.insert(0, str(nodes_dir))
-sys.path.insert(0, str(repo_dir / "cyphal"))
-sys.path.insert(0, str(repo_dir / "dronecan"))
-
-from gnss import test_dronecan_gps_mag_baro
+from raccoonlab_tools.cyphal.gnss import test_dronecan_gps_mag_baro
 from specification_checker import run_cyphal_standard_checker
 from common import upload_firmware
 

@@ -125,6 +125,12 @@ An illustration:
 
 ![](https://github.com/PonomarevDA/tools/blob/docs/assets/gnss/ucenter/address.png?raw=true)
 
+### 8. Test DroneCAN gps-mag-baro
+
+```bash
+rl-test-dronecan-gps-mag-baro
+```
+
 <!--
 
 ### 6. Upload cyphal parameters
