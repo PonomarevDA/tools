@@ -3,8 +3,10 @@
 # Copyright (c) 2023-2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 import os
-import asyncio
+import sys
 import time
+import subprocess
+import asyncio
 import random
 import string
 import re
@@ -428,13 +430,12 @@ class TestRegisterInterface:
         return TestRegisterInterface.register_list
 
 def main():
-    import os
-    import subprocess
-    print(os.path.abspath(__file__))
-    subprocess.call(["pytest", os.path.abspath(__file__),
-                     "-v",
-                     '--asyncio-mode=auto',
-                     '-W', 'ignore::DeprecationWarning'])
+    cmd = ["pytest", os.path.abspath(__file__),
+           "-v",
+           "--asyncio-mode=auto",
+           '-W', 'ignore::DeprecationWarning']
+    cmd += sys.argv[1:]
+    subprocess.call(cmd)
 
 if __name__ == "__main__":
     main()
