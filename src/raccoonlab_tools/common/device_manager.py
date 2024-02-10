@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import sys
 from dataclasses import dataclass
 import serial.tools.list_ports
 
@@ -22,13 +21,6 @@ KNOWN_PROGRAMMERS = [
 
 class DeviceManager:
     @staticmethod
-    def get_sniffer(verbose=False):
-        sniffers = DeviceManager().find_sniffers(verbose)
-        if len(sniffers) == 0:
-            raise Exception("[ERROR] CAN-sniffer has not been automatically found.")
-        return sniffers[0].port
-
-    @staticmethod
     def find_sniffers(verbose=False) -> list:
         sniffers = []
         ports = serial.tools.list_ports.comports()
@@ -47,6 +39,13 @@ class DeviceManager:
                 print(f"- {sniffer}")
 
         return sniffers
+
+    @staticmethod
+    def get_sniffer(verbose=False):
+        sniffers = DeviceManager().find_sniffers(verbose)
+        if len(sniffers) == 0:
+            raise Exception("[ERROR] CAN-sniffer has not been automatically found.")
+        return sniffers[0].port
 
     @staticmethod
     def find_programmers(verbose=True) -> list:
@@ -68,6 +67,12 @@ class DeviceManager:
 
         return programmers
 
+    @staticmethod
+    def get_programmer(verbose=False):
+        programmers = DeviceManager().find_programmers(verbose)
+        if len(programmers) == 0:
+            raise Exception("[ERROR] STM32-Programmer has not been automatically found.")
+        return programmers[0].port
 
 if __name__ == "__main__":
     DeviceManager.find_sniffers(verbose=True)

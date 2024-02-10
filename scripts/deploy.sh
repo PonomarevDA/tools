@@ -17,19 +17,20 @@ if [ ! "${BASH_SOURCE[0]}" -ef "$0" ]; then
     return
 elif [[ $1 == "--pypi" ]]; then
     echo Deploying to PyPi...
-    REPOSITORY=""   # empty means PyPi
+    DEPLOY_REPOSITORY=""   # empty means PyPi
 elif [ ! -z $1 ]; then
     print_help
     exit
 else
     echo Deploying to TestPyPI...
-    REPOSITORY="--repository testpypi"
+    DEPLOY_REPOSITORY="--repository testpypi"
 fi
 
 # Main
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-cd $SCRIPT_DIR
+SCRIPTS_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+ROOT_DIR="$(dirname "$SCRIPTS_DIR")"
+cd $ROOT_DIR
 rm -rf dist/
 rm -rf src/raccoonlab_tools.egg-info
 python3 -m build
-python3 -m twine upload $REPOSITORY dist/*
+python3 -m twine upload $DEPLOY_REPOSITORY dist/*
