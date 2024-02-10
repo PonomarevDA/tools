@@ -3,7 +3,6 @@
 # Copyright (c) 2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
-import sys
 import asyncio
 from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol
 from raccoonlab_tools.common.device_manager import DeviceManager
@@ -24,19 +23,19 @@ async def get_info_cyphal() -> NodeInfo:
     node_info = await NodeFinder(cyphal_node).get_info()
     return node_info
 
-def get_info_dronecan(sniffer_port : str) -> NodeInfo:
-    assert isinstance(sniffer_port, str)
+def get_info_dronecan(transport : str) -> NodeInfo:
+    assert isinstance(transport, str)
     import dronecan
     from raccoonlab_tools.dronecan.utils import NodeFinder
 
-    node = dronecan.make_node(sniffer_port, node_id=100, bitrate=1000000, baudrate=1000000)
+    node = dronecan.make_node(transport, node_id=100, bitrate=1000000, baudrate=1000000)
     return NodeFinder(node).get_info()
 
 def main():
-    sniffer = DeviceManager.get_sniffer(verbose=True)
-    can_protocol = CanProtocolParser.verify_protocol(sniffer, verbose=True)
+    transport = DeviceManager.get_transport(verbose=True)
+    can_protocol = CanProtocolParser.verify_protocol(transport, verbose=True)
     if can_protocol == Protocol.DRONECAN:
-        node_info = get_info_dronecan(sniffer)
+        node_info = get_info_dronecan(transport)
     elif can_protocol == Protocol.CYPHAL:
         node_info = asyncio.run(get_info_cyphal())
     node_info.print_info("")

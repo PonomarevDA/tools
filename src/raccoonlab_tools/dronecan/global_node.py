@@ -11,8 +11,15 @@ class DronecanNode:
     node = None
     def __init__(self) -> None:
         if DronecanNode.node is None:
-            can_transport = f'slcan:{DeviceManager.get_sniffer()}'
-            DronecanNode.node = dronecan.make_node(can_transport,
+            transport = DeviceManager.get_transport()
+            if transport.startswith("slcan"):
+                dronecan_transport = f'{transport}'
+            elif transport.startswith("/dev/") or transport.startswith("COM"):
+                dronecan_transport = f'slcan:{transport}'
+            else:
+                raise Exception(f"Unsupported interface {transport}")
+
+            DronecanNode.node = dronecan.make_node(dronecan_transport,
                                                    node_id=100,
                                                    bitrate=1000000,
                                                    baudrate=1000000)
