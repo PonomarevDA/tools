@@ -32,13 +32,16 @@ rl-test-dronecan-specification
 
 ![](https://github.com/PonomarevDA/tools/blob/docs/assets/rl-test-dronecan-specification.gif?raw=true)
 
-### 3. Check protocol
+### 3. Get Node Info (Cyphal / DroneCAN)
 
 ```bash
-rl-check-protocol
+rl-get-info
 ```
 
-return cyphal | dronecan | none
+Return:
+- Online CAN-sniffers
+- Detect protocol if any CAN-node is avaliable: cyphal | dronecan | none
+- Show node info of Cyphal/CAN or DroneCAN node if it is avaliable
 
 ### 4. Upload firmware with st-link linux / STM32CubeProgrammer Windows
 
