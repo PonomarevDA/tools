@@ -1,5 +1,12 @@
+# common
 pyserial
 python-can
-pycyphal
 pytest
+
+# dronecan related
+pydronecan
+
+# cyphal related
+pycyphal
 pytest-asyncio
+yakut

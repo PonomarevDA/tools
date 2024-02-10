@@ -28,10 +28,10 @@ jobs:
 
       - name: Run Yakut Monitor with ID 126 in background
         run: |
-          source cyphal/init.sh --interface slcan0 --node-id 126 -v
+          source scripts/cyphal/init.sh --interface slcan0 --node-id 126 -v
           y mon &
 
       - name: Run pytest
         run: |
-          source cyphal/init.sh -i slcan0 -n 127 -v
+          source scripts/cyphal/init.sh -i slcan0 -n 127 -v
           ./src/raccoonlab_tools/scripts/cyphal/test_specification.py
