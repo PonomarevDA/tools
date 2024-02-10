@@ -4,6 +4,7 @@
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
 import os
+import sys
 import subprocess
 import dronecan
 import pytest
@@ -64,10 +65,9 @@ class TestNodeStatus:
         assert uptame_elapsed in [2, 3]
 
 def main():
-    print(os.path.abspath(__file__))
-    subprocess.call(["pytest", os.path.abspath(__file__),
-                     "-v",
-                     '-W', 'ignore::DeprecationWarning'])
+    cmd = ["pytest", os.path.abspath(__file__), "-v", '-W', 'ignore::DeprecationWarning']
+    cmd += sys.argv[1:]
+    subprocess.call(cmd)
 
 if __name__ == "__main__":
     main()

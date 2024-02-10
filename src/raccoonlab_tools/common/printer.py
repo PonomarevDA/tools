@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# This software is distributed under the terms of the MIT License.
+# Copyright (c) 2023-2024 Dmitry Ponomarev.
+# Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
+"""
+Suitable for XPRINTER XP-365B
+"""
 import os
 import subprocess
 import logging
