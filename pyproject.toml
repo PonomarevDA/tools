@@ -24,6 +24,7 @@ dependencies = {file = ["requirements.txt"]}
 [project.scripts]
 rl-test-cyphal-specification = "raccoonlab_tools.scripts.cyphal.test_specification:main"
 rl-test-dronecan-specification = "raccoonlab_tools.scripts.dronecan.test_specification:main"
+rl-test-dronecan-gps-mag-baro = "raccoonlab_tools.scripts.dronecan.test_gps_mag_baro:main"
 rl-check-protocol = "raccoonlab_tools.scripts.common.check_protocol:main"
 rl-get-info = "raccoonlab_tools.scripts.common.get_info:main"
 rl-upload-firmware = "raccoonlab_tools.scripts.common.upload_firmware:main"

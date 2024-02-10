@@ -3,43 +3,16 @@
 # Copyright (c) 2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
-import sys
-import time
 import os
 import subprocess
 import dronecan
 import pytest
 
-from raccoonlab_tools.common.device_manager import DeviceManager
+from raccoonlab_tools.dronecan.global_node import DronecanNode
 
 HEALTH_OK = 0
 MODE_OPERATIONAL = 0
 VSSC_RACCOONLAB_RELEASE = 2
-
-class DronecanNode:
-    node = None
-    def __init__(self) -> None:
-        if DronecanNode.node is None:
-            can_transport = f'slcan:{DeviceManager.find_sniffer_or_exit()}'
-            DronecanNode.node = dronecan.make_node(can_transport,
-                                                   node_id=100,
-                                                   bitrate=1000000,
-                                                   baudrate=1000000)
-        self.msg = None
-
-    def sub_once(self, data_type, timeout_sec=1.0) -> tuple:
-        self.msg = None
-        handler = DronecanNode.node.add_handler(data_type, self._callback)
-        for _ in range(int(timeout_sec * 1000)):
-            DronecanNode.node.spin(0.001)
-            if self.msg is not None:
-                break
-        handler.remove()
-        return self.msg
-
-    def _callback(self, event):
-        self.msg = event
-        self.msg.timestamp = time.time()
 
 class TestNodeStatus:
     """

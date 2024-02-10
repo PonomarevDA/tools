@@ -134,8 +134,7 @@ def main():
     logging.getLogger("asyncio").setLevel(logging.CRITICAL)
     logging.getLogger().setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
-    sniffer = DeviceManager.find_sniffer_or_exit(verbose=True)
-    CanProtocolParser.verify_protocol(sniffer, white_list=[Protocol.CYPHAL], verbose=True)
+    CanProtocolParser.verify_protocol(white_list=[Protocol.CYPHAL], verbose=True)
 
     try:
         asyncio.run(application_entry_point(dest_node_id=50))

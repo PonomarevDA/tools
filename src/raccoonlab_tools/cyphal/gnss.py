@@ -8,7 +8,7 @@ import pycyphal.application
 # pylint: disable=import-error
 import uavcan.node
 import ds015.service.gnss.Gnss_0_1
-from utils import RegisterInterface, PortRegisterInterface
+from raccoonlab_tools.cyphal.utils import RegisterInterface, PortRegisterInterface
 
 
 class TimeWeekChecker:

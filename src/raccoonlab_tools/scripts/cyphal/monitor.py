@@ -32,7 +32,6 @@ import reg.udral.service.common.Readiness_0_1
 from raccoonlab_tools.common.colorizer import Colorizer, Colors
 from raccoonlab_tools.cyphal.utils import NodeFinder, PortRegisterInterface
 from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol
-from raccoonlab_tools.common.device_manager import DeviceManager
 
 
 class HighColorPub:
@@ -350,8 +349,7 @@ class RLConfigurator:
 
 
 def main():
-    sniffer = DeviceManager.find_sniffer_or_exit(verbose=True)
-    CanProtocolParser.verify_protocol(sniffer, white_list=[Protocol.CYPHAL], verbose=True)
+    CanProtocolParser.verify_protocol(white_list=[Protocol.CYPHAL], verbose=True)
 
     rl_configurator = RLConfigurator()
     try:
