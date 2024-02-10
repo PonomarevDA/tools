@@ -4,8 +4,6 @@
 
 `tools` is a collection of scripts for testing and configuration of Cyphal/CAN and DroneCAN nodes.
 
-## Current status
-
 > This package is under development. It is avaliable in [test.pypi](https://test.pypi.org/project/raccoonlab-tools/) at the moment.
 
 ## Usage
@@ -30,7 +28,12 @@ rl-test-cyphal-specification
 rl-test-dronecan-specification
 ```
 
+```bash
+rl-test-dronecan-gps-mag-baro
+```
+
 ![](https://github.com/PonomarevDA/tools/blob/docs/assets/rl-test-dronecan-specification.gif?raw=true)
+
 
 ### 3. Get Node Info (Cyphal / DroneCAN)
 
@@ -128,12 +131,6 @@ An illustration:
 
 ![](https://github.com/PonomarevDA/tools/blob/docs/assets/gnss/ucenter/address.png?raw=true)
 
-### 8. Test DroneCAN gps-mag-baro
-
-```bash
-rl-test-dronecan-gps-mag-baro
-```
-
 <!--
 
 ### 6. Upload cyphal parameters
@@ -155,6 +152,20 @@ rl-check-updates
 rl-socketcan
 
 ### UC13-14. Create slcan linux/windows -->
+
+## Developer notes
+
+Deploy to [TestPyPI](https://test.pypi.org/project/raccoonlab-tools/):
+
+```bash
+./scripts/deploy.sh
+```
+
+Deploy to [PyPI](https://pypi.org/project/raccoonlab-tools/):
+
+```bash
+./scripts/deploy.sh --pypi
+```
 
 ## License
 

@@ -30,6 +30,6 @@ jobs:
         run: |
           pwd
           ls -l
-          source repository/cyphal/init.sh -i slcan0 -n 127 -v
+          source repository/scripts/cyphal/init.sh -i slcan0 -n 127 -v
           timeout --verbose --preserve-status 3 y mon > yakut_output.txt || true
           cat yakut_output.txt

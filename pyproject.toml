@@ -11,6 +11,7 @@ authors = [
 description = "RaccoonLab tools"
 readme = "README.md"
 requires-python = ">=3.7"
+keywords = ["cyphal", "dronecan", "can"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
