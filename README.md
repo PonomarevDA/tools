@@ -103,7 +103,7 @@ metadata:
 ### 5. Upload config
 
 ```bash
-rl-dronecan-config --config PATH
+rl-config --config PATH
 ```
 
 Example of yaml config file:
@@ -115,7 +115,7 @@ params:
     uavcan.node.name: co.rl.mini
 ```
 
-![](https://github.com/PonomarevDA/tools/blob/docs/assets/rl-dronecan-config.gif?raw=true)
+![](https://github.com/PonomarevDA/tools/blob/docs/assets/rl-config.gif?raw=true)
 
 
 ### 6. Monitor
