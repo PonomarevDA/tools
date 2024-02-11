@@ -25,16 +25,16 @@ dependencies = {file = ["requirements.txt"]}
 [project.scripts]
 rl-get-info = "raccoonlab_tools.scripts.common.get_info:main"
 rl-upload-firmware = "raccoonlab_tools.scripts.common.upload_firmware:main"
-
-rl-cyphal-monitor = "raccoonlab_tools.scripts.cyphal.monitor:main"
-rl-test-cyphal-specification = "raccoonlab_tools.scripts.cyphal.test_specification:main"
+rl-config = "raccoonlab_tools.scripts.dronecan.config:main"
+rl-monitor = "raccoonlab_tools.scripts.cyphal.monitor:main"
 rl-ublox-center = "raccoonlab_tools.scripts.cyphal.ublox_center:main"
 
-rl-dronecan-config = "raccoonlab_tools.scripts.dronecan.config:main"
-rl-get-dronecan-params = "raccoonlab_tools.scripts.dronecan.get_params:main"
-rl-set-dronecan-params = "raccoonlab_tools.scripts.dronecan.set_params:main"
+rl-test-cyphal-specification = "raccoonlab_tools.scripts.cyphal.test_specification:main"
+
 rl-test-dronecan-gps-mag-baro = "raccoonlab_tools.scripts.dronecan.test_gps_mag_baro:main"
 rl-test-dronecan-specification = "raccoonlab_tools.scripts.dronecan.test_specification:main"
+rl-get-dronecan-params = "raccoonlab_tools.scripts.dronecan.get_params:main"
+rl-set-dronecan-params = "raccoonlab_tools.scripts.dronecan.set_params:main"
 
 [project.urls]
 "Homepage" = "https://github.com/PonomarevDA/tools"
