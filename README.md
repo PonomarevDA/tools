@@ -100,14 +100,10 @@ metadata:
 
 4. Direct .bin path with `--binary` option
 
-### 5. Upload dronecan parameters
+### 5. Upload config
 
 ```bash
-rl-get-dronecan-params
-```
-
-```bash
-rl-set-dronecan-params --config PATH
+rl-dronecan-config --config PATH
 ```
 
 Example of yaml config file:
@@ -122,13 +118,23 @@ params:
 ![](https://github.com/PonomarevDA/tools/blob/docs/assets/rl-dronecan-config.gif?raw=true)
 
 
-### 6. Cyphal monitor
+### 6. Monitor
 
 ```bash
-rl-cyphal-monitor
+rl-monitor
 ```
 
-Usage example:
+This script is used for automated node analysis. Within a single command:
+- detect the protocol (Cyphal or DroneCAN),
+- detect the node type,
+- check the software version and highlight if it is not the latest,
+- configure it if it has not been configured yet,
+- subscribes on all possible topics,
+- provide basic tests and diagnostics, highlight issues,
+- publish some test commands if possible,
+- print all data in real time.
+
+An example of `rl-monitor` with gnss node:
 
 ![](https://github.com/PonomarevDA/tools/wiki/assets/monitor_gnss.gif)
 
