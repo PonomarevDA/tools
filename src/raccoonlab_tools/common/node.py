@@ -83,7 +83,7 @@ class NodeInfo:
         print("Node info:")
         print(f"- Name: {self.name}")
 
-        print(f"- SW: ", end='')
+        print("- SW: ", end='')
         if len(latest_sw_version) == 0:
             print(f"{self.software_version} (SW history is unknown)")
         elif self.software_version.vcs_commit == latest_sw_version:

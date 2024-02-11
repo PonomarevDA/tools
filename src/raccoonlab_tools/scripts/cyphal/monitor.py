@@ -10,7 +10,7 @@ import datetime
 import math
 import asyncio
 import numpy as np
-import random
+import secrets
 
 import pycyphal.application
 
@@ -48,9 +48,9 @@ class HighColorPub:
         self._pub = self.node.make_publisher(reg.udral.physics.optics.HighColor_0_1, 2107)
         self._pub_counter = 0
     async def publish_and_print(self):
-        self.red += random.randint(0,1)
-        self.green += random.randint(0,2)
-        self.blue += random.randint(0,1)
+        self.red += secrets.randbelow(2)
+        self.green += secrets.randbelow(3)
+        self.blue += secrets.randbelow(2)
 
         self.msg.red   = self.red   % 32 if self.red   % 64  < 32 else 63 -  self.red   % 64
         self.msg.green = self.green % 64 if self.green % 128 < 64 else 127 - self.green % 128
@@ -216,7 +216,7 @@ class BaseMonitor:
             sub.print_data()
 
     @staticmethod
-    def get_latest_sw_version() -> int:
+    def get_latest_sw_version() -> str:
         return ""
 
     @staticmethod
@@ -237,7 +237,7 @@ class GpsMagBaroMonitor(BaseMonitor):
         ]
 
     @staticmethod
-    def get_latest_sw_version() -> int:
+    def get_latest_sw_version() -> str:
         return "c78d47c3c9744f55"
 
     def get_vssc_meaning(self, vssc: int) -> str:
@@ -318,7 +318,7 @@ class RLConfigurator:
             await node_monitor.process()
             await asyncio.sleep(0.1)
 
-    async def _find_node(self) -> BaseMonitor:
+    async def _find_node(self) -> tuple:
         # 1. Define node ID
         node_finder = NodeFinder(self.node)
         self.node_id = await node_finder.find_online_node(timeout=5.0)

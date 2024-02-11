@@ -31,8 +31,10 @@ node = dronecan.make_node(args.port, bitrate=1000000)
 # Initializing a node monitor, so we can see what nodes are online
 node_monitor = dronecan.app.node_monitor.NodeMonitor(node)
 
+NODE_ID = 'Node id'
+
 data = []
-columnnames = ['Date', 'Node id', 'Uptime', 'Health']
+columnnames = ['Date', NODE_ID, 'Uptime', 'Health']
 
 
 def handle_node_info(msg):
@@ -75,14 +77,14 @@ while True:
         spin_node()
         df = pd.DataFrame(data, columns=columnnames)
 
-        listid = list(df['Node id'].unique())
+        listid = list(df[NODE_ID].unique())
 
         for i in listid:
             # finally append each frame to csv
-            pd.DataFrame(data=[[df['Date'][df['Node id'] == i].iloc[-1],
+            pd.DataFrame(data=[[df['Date'][df[NODE_ID] == i].iloc[-1],
                                 i,
-                                df['Uptime'][df['Node id'] == i].iloc[-1],
-                                df['Health'][df['Node id'] == i].iloc[-1]
+                                df['Uptime'][df[NODE_ID] == i].iloc[-1],
+                                df['Health'][df[NODE_ID] == i].iloc[-1]
                                 ]]
                          ).to_csv(args.outfile, header=False, index=False, mode='a')
 
