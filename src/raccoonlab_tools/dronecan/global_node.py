@@ -3,6 +3,7 @@
 # Copyright (c) 2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
+import sys
 import time
 import dronecan
 from raccoonlab_tools.common.device_manager import DeviceManager
@@ -17,7 +18,8 @@ class DronecanNode:
             elif transport.startswith("/dev/") or transport.startswith("COM"):
                 dronecan_transport = f'slcan:{transport}'
             else:
-                raise Exception(f"Unsupported interface {transport}")
+                print(f"Unsupported interface {transport}")
+                sys.exit(1)
 
             DronecanNode.node = dronecan.make_node(dronecan_transport,
                                                    node_id=100,

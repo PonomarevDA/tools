@@ -185,7 +185,7 @@ class NodeCommander:
 
     def _restart_node_response_cb(self, transfer_event):
         assert isinstance(transfer_event, dronecan.node.TransferEvent)
-        self._stored = transfer_event.transfer.payload.ok
+        self._restarted = transfer_event.transfer.payload.ok
 
 
 # Tests

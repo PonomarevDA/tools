@@ -6,6 +6,7 @@
 import time
 import asyncio
 import numpy as np
+from typing import Optional
 
 # pylint: disable=import-error
 import uavcan.register.Access_1_0
@@ -136,7 +137,7 @@ class RegisterInterface:
 
         return register_names
 
-    async def register_acess(self, dest_node_id : int, register_name : str, value=None) -> list:
+    async def register_acess(self, dest_node_id : int, register_name : str, value=None) -> Optional[list]:
         """
         Read or modify a register on a remote node.
         Simplied version of `yakut register-access`.
@@ -164,7 +165,7 @@ class PortRegisterInterface:
         self.node = cyphal_node
         self.registers = RegisterInterface(self.node)
 
-    async def get_id(self, dest_node_id : int, register_name : str) -> int:
+    async def get_id(self, dest_node_id : int, register_name : str) -> Optional[int]:
         assert isinstance(dest_node_id, int) and dest_node_id >= 1 and dest_node_id <= 127
         assert isinstance(register_name, str)
 
@@ -180,7 +181,7 @@ class PortRegisterInterface:
 
         return int(read_value.natural16.value[0])
 
-    async def set_id(self, dest_node_id : int, register_name : str, value : int) -> int:
+    async def set_id(self, dest_node_id : int, register_name : str, value : int) -> Optional[int]:
         assert isinstance(dest_node_id, int) and dest_node_id >= 1 and dest_node_id <= 127
         assert isinstance(register_name, str)
         assert isinstance(value, int) and value >= 1 and value <= 65535

@@ -23,6 +23,10 @@ import can
 from enum import Enum
 from raccoonlab_tools.common.device_manager import DeviceManager
 
+class ProtocolVerificationError(Exception):
+    """Exception raised when the protocol verification fails."""
+    pass
+
 class Protocol(Enum):
     UNKNOWN = 0
     CYPHAL = 1
@@ -103,7 +107,7 @@ class CanProtocolParser:
 
         parser = CanProtocolParser(transport)
         if parser.protocol == Protocol.UNKNOWN:
-            print(f"[ERROR] Neither Cyphal or DroneCAN protocol can be automatically determined.")
+            print("[ERROR] Neither Cyphal or DroneCAN protocol can be automatically determined.")
         elif verbose:
             print(f"Found protocol: {parser.protocol}")
 
@@ -117,7 +121,7 @@ class CanProtocolParser:
         assert isinstance(verbose, bool)
         protocol = CanProtocolParser.find_protocol(transport, verbose=True)
         if protocol not in white_list:
-            raise Exception(f"[ERROR] Expected protocols are {white_list}.")
+            raise ProtocolVerificationError(f"[ERROR] Expected protocols are {white_list}.")
 
         return protocol
 

@@ -7,7 +7,7 @@ import sys
 import time
 import subprocess
 import asyncio
-import random
+import secrets
 import string
 import re
 import pytest
@@ -303,11 +303,19 @@ class TestRegisterInterface:
         - The name shall neither begin nor end with a full stop.
         - A low line shall not be followed by a non-alphanumeric character.
         - The name should contain at least one full stop character.
+
+        Check the pattern:
+        good_names = ["uavcan.pub.port.id", "lights.color", "pwm1.def", "gnss.moving_baseline"]
+        bad_names = ["1pwm.def", ".pwm.def", "pwm.def.", "PWM1.def", "mag_frequency"]
+
+        assert all(re.match(pattern, name) for name in good_names)
+        assert all(re.match(pattern, name) is None for name in bad_names)
         """
 
         register_names = await TestRegisterInterface._collect_register_list()
+        pattern = r'^[a-z][a-z0-9._]*(?:\.[a-z0-9._]+)+$'
         for register_name in register_names:
-            assert TestRegisterInterface._check_register_name(register_name)
+            assert re.match(pattern, register_name) is not None
 
     @staticmethod
     async def test_default_registers_existance():
@@ -373,7 +381,7 @@ class TestRegisterInterface:
         dest_node_id = await node_finder.find_online_node()
         commander = NodeCommander(cyphal_node, dest_node_id)
         register = "uavcan.node.description"
-        random_string = ''.join(random.choices(string.ascii_lowercase, k=10))
+        random_string = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(10))
         random_value = uavcan.primitive.String_1_0(random_string)
 
         tested_node_info = await node_finder.get_info()
@@ -410,12 +418,6 @@ class TestRegisterInterface:
         assert access_response is not None
         access_response = access_response[0]
         return access_response
-
-
-    @staticmethod
-    def _check_register_name(register_name):
-        pattern = r'^[a-z][a-z0-9._]*(\.[a-z0-9._]+)+$'
-        return re.match(pattern, register_name) is not None
 
     @staticmethod
     async def _collect_register_list() -> list:

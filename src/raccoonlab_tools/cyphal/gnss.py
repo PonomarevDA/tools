@@ -4,7 +4,7 @@
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 import asyncio
 import datetime
-import random
+import secrets
 import math
 
 import pycyphal.application
@@ -35,7 +35,7 @@ class TimeWeekChecker:
     async def _callback(self, msg, transfer_from):
         if math.isclose(msg.point.latitude, 0.0, abs_tol=1e-05) and \
            math.isclose(msg.num_sats, 0.0, abs_tol=1e-05):
-            print(f"GNSS has not been estimate the date yet.")
+            print("GNSS has not been estimate the date yet.")
             return
 
         timeweek_ms_now = self.get_gnss_timeweek_ms_now()
@@ -79,9 +79,9 @@ class TimeWeekChecker:
         return time_week_ms
 
 def random_integer(excluded_set):
-    num = random.randint(0, 6143)
+    num = secrets.randbelow(6144)
     while num in excluded_set:
-        num = random.randint(0, 6143)
+        num = secrets.randbelow(6144)
     return num
 
 async def main(dest_node_id):
@@ -113,9 +113,8 @@ async def main(dest_node_id):
             set_request = uavcan.register.Access_1_0.Request()
             set_request.name.name = reg_name
             set_request.value.natural16 = uavcan.primitive.array.Natural16_1_0(free_port_id)
-            access_response = await access_client.call(set_request)
-        # else:
-        #     print(reg_name, port_id)
+            await access_client.call(set_request)
+
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
