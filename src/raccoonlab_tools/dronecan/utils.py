@@ -4,7 +4,7 @@
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
 import dronecan
-from typing import Union
+from typing import Union, Optional
 from dataclasses import dataclass
 from raccoonlab_tools.common.node import NodeInfo
 
@@ -40,13 +40,17 @@ class ParametersInterface:
         self._target_node_id = target_node_id
         self._parameter = None
 
-    def get(self, idx : int) -> Parameter:
+    def get(self, idx_or_name : Union[int, str]) -> Parameter:
         """
         None means that the target node dodn't respond
         Empty means the parameter doesn't exist.
         """
-        assert isinstance(idx, int)
-        req = dronecan.uavcan.protocol.param.GetSet.Request(index=idx)
+        assert isinstance(idx_or_name, int) or isinstance(idx_or_name, str)
+
+        if isinstance(idx_or_name, int):
+            req = dronecan.uavcan.protocol.param.GetSet.Request(index=idx_or_name)
+        else:
+            req = dronecan.uavcan.protocol.param.GetSet.Request(name=idx_or_name)
         self._parameter = None
         self.node.request(req, self._target_node_id, self._callback)
         for _ in range(20):
