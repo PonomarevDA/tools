@@ -69,20 +69,26 @@ class ParametersInterface:
             all_params.append(parameter)
         return all_params
 
-    def set(self, param : Parameter) -> Parameter:
+    def set(self, params : Union[Parameter, list]) -> Union[Optional[Parameter]]:
         """
-        None means that the target node dodn't respond
-        Empty means the parameter doesn't exist.
+        Input one of these:
+        - a single Parameter
+        - a list of Paramters
+        Return:
+        - Parameter on success,
+        - None if the target node didn't respond,
+        - Empty if the parameter doesn't exist.
         """
-        assert isinstance(param, Parameter)
-        self._parameter = None
-        self.node.request(param.create_getset_request(), self._target_node_id, self._callback)
-        for _ in range(20):
-            self.node.spin(0.005)
-            if self._parameter is not None:
-                break
+        responses = None
 
-        return self._parameter
+        if isinstance(params, Parameter):
+            responses = self._set_single_parameter(params)
+        if isinstance(params, list) and isinstance(params[0], Parameter):
+            responses = []
+            for param in params:
+                responses.append(self._set_single_parameter(param))
+
+        return responses
 
     def _callback(self, msg : dronecan.uavcan.protocol.param.GetSet.Response):
         if hasattr(msg.response.value, 'boolean_value'):
@@ -101,6 +107,21 @@ class ParametersInterface:
             name = str(msg.response.name),
             value = value
         )
+
+    def _set_single_parameter(self, param : Parameter) -> Parameter:
+        """
+        None means that the target node dodn't respond
+        Empty means the parameter doesn't exist.
+        """
+        assert isinstance(param, Parameter)
+        self._parameter = None
+        self.node.request(param.create_getset_request(), self._target_node_id, self._callback)
+        for _ in range(20):
+            self.node.spin(0.005)
+            if self._parameter is not None:
+                break
+
+        return self._parameter
 
 class NodeFinder:
     """
