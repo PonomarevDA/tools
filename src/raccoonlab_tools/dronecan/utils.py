@@ -7,6 +7,7 @@ import dronecan
 from typing import Union, Optional
 from dataclasses import dataclass
 from raccoonlab_tools.common.node import NodeInfo
+from raccoonlab_tools.dronecan.global_node import DronecanNode
 
 @dataclass
 class Parameter:
@@ -33,11 +34,22 @@ class ParametersInterface:
     """
     A simple wrapper under uavcan.protocol.param.GetSet.
     """
-    def __init__(self, node : dronecan.node.Node, target_node_id : int) -> None:
-        assert isinstance(node, dronecan.node.Node)
-        assert isinstance(target_node_id, int)
-        self.node = node
-        self._target_node_id = target_node_id
+    def __init__(self, node : Optional[dronecan.node.Node] = None, target_node_id : Optional[int] = None) -> None:
+        if isinstance(node, dronecan.node.Node):
+            self.node = node
+        elif node is None:
+            dronecan_node = DronecanNode()
+            self.node = dronecan_node.node
+        else:
+            assert False, "node argument should be either dronecan.node.Node type or None"
+
+        if isinstance(target_node_id, int):
+            self._target_node_id = target_node_id
+        elif target_node_id is None:
+            self._target_node_id = NodeFinder(self.node).find_online_node()
+        else:
+            assert False, "target_node_id argument should be either integer or None"
+
         self._parameter = None
 
     def get(self, idx_or_name : Union[int, str]) -> Parameter:
@@ -178,9 +190,23 @@ class NodeCommander:
     """
     Wrapper under ExecuteCommand
     """
-    def __init__(self, node, target_node_id) -> None:
-        self.node = node
-        self.dest_node_id = target_node_id
+    def __init__(self, node : Optional[dronecan.node.Node] = None, target_node_id : Optional[int] = None) -> None:
+        if isinstance(node, dronecan.node.Node):
+            self.node = node
+        elif node is None:
+            dronecan_node = DronecanNode()
+            self.node = dronecan_node.node
+        else:
+            assert False, "node argument should be either dronecan.node.Node type or None"
+
+        if isinstance(target_node_id, int):
+            self.dest_node_id = target_node_id
+        elif target_node_id is None:
+            self.dest_node_id = NodeFinder(self.node).find_online_node()
+        else:
+            assert False, "target_node_id argument should be either integer or None"
+
+
         self._stored = False
         self._restarted = False
 
@@ -208,9 +234,9 @@ class NodeCommander:
         assert isinstance(transfer_event, dronecan.node.TransferEvent)
         self._stored = transfer_event.transfer.payload.ok
 
-    def _restart_node_response_cb(self, transfer_event):
-        assert isinstance(transfer_event, dronecan.node.TransferEvent)
-        self._restarted = transfer_event.transfer.payload.ok
+    def _restart_node_response_cb(self, transfer_event : Optional[dronecan.node.TransferEvent]):
+        if isinstance(transfer_event, dronecan.node.TransferEvent):
+            self._restarted = transfer_event.transfer.payload.ok
 
 
 # Tests
