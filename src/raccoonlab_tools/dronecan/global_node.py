@@ -37,6 +37,9 @@ class DronecanNode:
         handler.remove()
         return self.msg
 
+    def publish(self, msg):
+        DronecanNode.node.broadcast(msg)
+
     def _callback(self, event):
         self.msg = event
         self.msg.timestamp = time.time()
