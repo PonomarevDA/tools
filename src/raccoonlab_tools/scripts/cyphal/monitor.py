@@ -21,6 +21,7 @@ import uavcan.primitive.array.Natural16_1_0
 
 import uavcan.si.sample.pressure.Scalar_1_0
 import uavcan.si.sample.temperature.Scalar_1_0
+import uavcan.si.sample.voltage.Scalar_1_0
 import uavcan.si.sample.magnetic_field_strength.Vector3_1_1
 import uavcan.primitive.scalar.Integer16_1_0
 import uavcan.time.SynchronizedTimestamp_1_0
@@ -44,7 +45,7 @@ class HighColorPub:
         self.red = int(0)
         self.green = int(0)
         self.blue = int(0)
-    async def init(self):
+    async def init_pub(self):
         self._pub = self.node.make_publisher(reg.udral.physics.optics.HighColor_0_1, 2107)
         self._pub_counter = 0
     async def publish_and_print(self):
@@ -71,27 +72,31 @@ class BaseSubscriber:
         assert isinstance(node, pycyphal.application._node_factory.SimpleNode)
         assert isinstance(node_id, int)
         assert isinstance(def_id, int)
-        assert isinstance(reg_name, str)
+        assert isinstance(reg_name, str) or isinstance(reg_name, tuple)
         self.node = node
         self.data = None
         self._id = None
         self.id_updated = False
         self.node_id = node_id
         self.def_id = def_id
-        self.reg_name = reg_name
+        self.reg_names = reg_name if isinstance(reg_name, tuple) else (reg_name, )
         self.data_type = data_type
         self.port_interface = PortRegisterInterface(self.node)
-    async def init(self):
-        self._id = await self.port_interface.get_id(self.node_id, self.reg_name)
+    async def init_sub(self):
+        for reg_name in self.reg_names:
+            self._id = await self.port_interface.get_id(self.node_id, reg_name)
+            print(f"y r {self.node_id} {reg_name} # {self._id}")
+            if self._id is not None:
+                break
         if self._id is None:
-            print(f"[WARN] {self.reg_name} is not exist")
+            print(f"[WARN] {self.reg_names} is not exist")
             return
 
         self.id_updated = (self._id == 0) or (self._id > 8191)
 
         if self.id_updated:
-            self._id = await self.port_interface.set_id(self.node_id, self.reg_name, self.def_id)
-        assert isinstance(self._id, int), self.reg_name
+            self._id = await self.port_interface.set_id(self.node_id, reg_name, self.def_id)
+        assert isinstance(self._id, int), reg_name
         self.sub = self.node.make_subscriber(self.data_type, self._id).receive_in_background(self.callback)
 
     async def callback(self, data, transfer_from):
@@ -106,7 +111,11 @@ class BaseSubscriber:
         return string
 
 class CircuitStatusTemperatureSub(BaseSubscriber):
-    def __init__(self, node, node_id, def_id=2102, reg_name="uavcan.pub.crct.temp.id") -> None:
+    def __init__(self,
+                 node,
+                 node_id,
+                 def_id=2102,
+                 reg_name=("uavcan.pub.crct.temp.id", "uavcan.pub.crct.temperature.id")) -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.temperature.Scalar_1_0)
     def print_data(self):
         print("CircuitStatus:")
@@ -117,6 +126,22 @@ class CircuitStatusTemperatureSub(BaseSubscriber):
             kelvin = 0
             celcius = 0
         print(f"- crct.temp ({self.get_id_string()}): {kelvin} Kelvin ({celcius} Celcius)")
+
+class CircuitStatus5VSub(BaseSubscriber):
+    def __init__(self, node, node_id, def_id=2103, reg_name="uavcan.pub.crct.5v.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.voltage.Scalar_1_0)
+    def print_data(self):
+        volt = None if self.data is None else round(self.data.volt, 2)
+        print(f"- crct.5v ({self.get_id_string()}): {volt} Volt")
+
+class CircuitStatusVinSub(BaseSubscriber):
+    def __init__(self, node, node_id, def_id=2104, reg_name="uavcan.pub.crct.vin.id") -> None:
+        assert isinstance(node, pycyphal.application._node_factory.SimpleNode)
+        assert isinstance(node_id, int)
+        super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.voltage.Scalar_1_0)
+    def print_data(self):
+        volt = None if self.data is None else round(self.data.volt, 2)
+        print(f"- crct.vin ({self.get_id_string()}): {volt} Volt")
 
 class GpsSatsSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.sats.id") -> None:
@@ -205,9 +230,9 @@ class BaseMonitor:
 
     async def init(self):
         for sub in self.subs:
-            await sub.init()
+            await sub.init_sub()
         for pub in self.pubs:
-            await pub.init()
+            await pub.init_pub()
 
     async def process(self):
         for pub in self.pubs:
@@ -275,6 +300,21 @@ class UavLightsMonitor(BaseMonitor):
             HighColorPub(node, node_id),
         ]
 
+class MiniMonitor(BaseMonitor):
+    def __init__(self, node : pycyphal.application._node_factory.SimpleNode, node_id : int) -> None:
+        assert isinstance(node, pycyphal.application._node_factory.SimpleNode)
+        assert isinstance(node_id, int)
+
+        super().__init__(node, node_id)
+        self.node_id = node_id
+
+        self.subs = [
+            CircuitStatusTemperatureSub(node, node_id),
+            CircuitStatus5VSub(node, node_id),
+            CircuitStatusVinSub(node, node_id),
+        ]
+
+
 class PX4Monitor(BaseMonitor):
     def __init__(self, node, node_id) -> None:
         super().__init__(node, node_id)
@@ -330,7 +370,7 @@ class RLConfigurator:
             'co.raccoonlab.gps_mag_baro' : GpsMagBaroMonitor,
             'co.raccoonlab.lights' : UavLightsMonitor,
             'PX4_FMU_V5' : PX4Monitor,
-            'co.raccoonlab.mini' : BaseMonitor,
+            'co.raccoonlab.mini' : MiniMonitor,
         }
         info = await node_finder.get_info()
         if info.name in known_nodes:
