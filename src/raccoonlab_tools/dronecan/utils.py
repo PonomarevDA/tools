@@ -144,8 +144,8 @@ class NodeFinder:
     node_id = None
     black_list = [127]
 
-    def __init__(self, dronecan_node : dronecan.node.Node) -> None:
-        self._node = dronecan_node
+    def __init__(self, node : Optional[dronecan.node.Node] = None) -> None:
+        self._node = DronecanNode().node if node is None else node
         self._response = None
 
     def find_online_node(self, time_left_sec : float = 1.1) -> int:
