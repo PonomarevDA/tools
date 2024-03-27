@@ -31,7 +31,7 @@ class DronecanNode:
     def sub_once(self,
                  data_type,
                  msg_filter : Optional[Callable] = None,
-                 timeout_sec=1.0) -> Optional[dronecan.node.TransferEvent]:
+                 timeout_sec=1.5) -> Optional[dronecan.node.TransferEvent]:
         """
         Subscribes to the given topic and wait for first message.
 
@@ -42,14 +42,17 @@ class DronecanNode:
         crct_filter = lambda msg : msg.message.circuit_id == 500
         msg = node.sub_once(dronecan.uavcan.equipment.power.CircuitStatus, msg_filter=crct_filter)
 
-        By default the functions wait for 1 second. You can override the timeout:
+        By default the functions wait for 1.5 seconds. You can override the timeout:
         msg = node.sub_once(dronecan.uavcan.protocol.NodeStatus, timeout_sec=2.0)
         """
+        assert isinstance(msg_filter, Callable) or msg_filter is None
+        assert isinstance(timeout_sec, float)
         self.msg = None
         handler = DronecanNode.node.add_handler(data_type, self._callback)
 
-        for _ in range(int(timeout_sec * 1000)):
-            DronecanNode.node.spin(0.001)
+        end_time_sec = time.time() + timeout_sec
+        while time.time() < end_time_sec:
+            DronecanNode.node.spin(0.005)
             if self.msg is not None and (msg_filter is None or msg_filter(self.msg)):
                 break
             else:
@@ -62,16 +65,19 @@ class DronecanNode:
                      data_type,
                      number_of_messages : int,
                      msg_filter : Optional[Callable] = None,
-                     timeout_sec : float=1.0) -> List[Optional[dronecan.node.TransferEvent]]:
+                     timeout_sec : float=1.5) -> List[Optional[dronecan.node.TransferEvent]]:
         """
         Subscribes to the given topic and wait for given number_of_messages messages.
         """
+        assert isinstance(msg_filter, Callable) or msg_filter is None
+        assert isinstance(timeout_sec, float)
         list_of_messages = [None] * number_of_messages
         handler = DronecanNode.node.add_handler(data_type, self._callback)
 
         for idx in range(number_of_messages):
-            for _ in range(int(timeout_sec * 1000)):
-                DronecanNode.node.spin(0.001)
+            end_time_sec = time.time() + timeout_sec
+            while time.time() < end_time_sec:
+                DronecanNode.node.spin(0.005)
                 if self.msg is not None and (msg_filter is None or msg_filter(self.msg)):
                     list_of_messages[idx] = self.msg
                     break
