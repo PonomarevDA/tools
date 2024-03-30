@@ -11,23 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install dependencies
+      - name: Install basic dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y linux-modules-extra-$(uname -r)
           python3 -m pip install pip -U
-          pip install .
 
-      - name: Clone DSDL
-        run: |
-          mkdir -p /home/runner/.cyphal/zubax_dsdl
-          git clone https://github.com/Zubax/zubax_dsdl.git /home/runner/.cyphal/zubax_dsdl
+      - name: Install dependencies
+        run: ./scripts/ubuntu.sh --yes --cyphal-only
 
-          mkdir -p /home/runner/.cyphal/public_regulated_data_types
-          git clone https://github.com/OpenCyphal/public_regulated_data_types.git /home/runner/.cyphal/public_regulated_data_types
-
-          mkdir -p /home/runner/.cyphal/ds015
-          git clone -b pr-add-gnss https://github.com/PonomarevDA/ds015.git /home/runner/.cyphal/ds015
+      - name: Install the package
+        run: pip install .
 
       - name: Run Yakut Monitor with ID 126 in background
         run: |

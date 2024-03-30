@@ -6,30 +6,20 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     steps:
-      - name: Install
+      - uses: actions/checkout@v3
+
+      - name: Install basic dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y linux-modules-extra-$(uname -r)
-          python3 -m pip install yakut
+          python3 -m pip install pip -U
 
-      - uses: actions/checkout@v3
-        with:
-          path: 'repository'
+      - name: Install dependencies
+        run: ./scripts/ubuntu.sh --yes --cyphal-only
 
-      - uses: actions/checkout@v3
-        with:
-          repository: OpenCyphal/public_regulated_data_types
-          path: '.cyphal/public_regulated_data_types'
-
-      - uses: actions/checkout@v3
-        with:
-          repository: Zubax/zubax_dsdl
-          path: '.cyphal/zubax_dsdl'
-
-      - name: Check Yakut result 
+      - name: Check scripts/cyphal/init.sh and Yakut 
         run: |
           pwd
           ls -l
-          source repository/scripts/cyphal/init.sh -i slcan0 -n 127 -v
+          source scripts/cyphal/init.sh -i slcan0 -n 127 -v
           timeout --verbose --preserve-status 3 y mon > yakut_output.txt || true
           cat yakut_output.txt
