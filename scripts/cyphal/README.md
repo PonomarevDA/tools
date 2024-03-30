@@ -4,16 +4,6 @@ A few Cyphal related scripts are collected here.
 
 ## PREPARATION
 
-To start with Cyphal/CAN (pycyphal, yakut, yukon) the following environment variables should be configured:
-
-| Environment variable | Meaning |
-| -------------------- | - |
-| CYPHAL_PATH          | Path to DSDL. Let's use the default:`$HOME/.cyphal` |
-| UAVCAN__NODE__ID     | The application node identifier |
-| UAVCAN__CAN__IFACE   | CAN iface name |
-| UAVCAN__CAN__BITRATE | Arbitration/data segment bits per second |
-| UAVCAN__CAN__MTU     | Maximum transmission unit: 8 for classic CAN |
-
 There are a few approaches here.
 
 1. If you have a CAN-sniffer ([RL CAN-sniffer](https://docs.raccoonlab.co/guide/programmer_sniffer/) or [Zubax Babel](https://zubax.com/products/babel)) and you want a simple connection to your device, the recommended cross-platform way is to use [Python-CAN](https://python-can.readthedocs.io/en/stable/) [CAN over Serial / SLCAN](https://python-can.readthedocs.io/en/stable/interfaces/slcan.html) interface.

@@ -4,11 +4,14 @@
 
 `tools` is a collection of scripts for testing and configuration of Cyphal/CAN and DroneCAN nodes.
 
-> This package is under development. It is avaliable in [test.pypi](https://test.pypi.org/project/raccoonlab-tools/) at the moment.
+> This package is under development.
 
-## Preparation
+## 1. INSTALLATION
 
-1. Install the package either from test.pypi or from sources:
+1. Install the package from pypi, test.pypi or from sources:
+    ```bash
+    pip install raccoonlab-tools
+    ```
     ```bash
     pip install -i https://test.pypi.org/simple/ raccoonlab-tools
     ```
@@ -17,18 +20,40 @@
     cd tools
     pip install .
     ```
-2. Clone the nodes config files somewhere. We recommend `~/.raccoonlab_tools/vendors` For example:
+2. Clone Cyphal DSDL if you want to use Cyphal
+    ```
+    git clone https://github.com/OpenCyphal/public_regulated_data_types.git ~/.cyphal/public_regulated_data_types
+
+    git clone https://github.com/Zubax/zubax_dsdl.git ~/.cyphal/zubax_dsdl
+
+    git clone -b pr-add-gnss https://github.com/PonomarevDA/ds015.git ~/.cyphal/ds015
+    ```
+3. (Skip this step at the moment) Clone the nodes config files somewhere. We recommend `~/.raccoonlab_tools/vendors` For example:
     ```bash
     mkdir -p ~/.raccoonlab_tools/vendors/raccoonlab
     cd ~/.raccoonlab_tools/vendors/raccoonlab
     git clone https://github.com/RaccoonlabDev/raccoonlab_nodes_configs.git .
     ```
-3. Install additional dependencies if you want to upload a firmware with STM32-programmer:
+4. Install additional dependencies if you want to upload a firmware with STM32-programmer:
     - On ubuntu install [stlink](https://github.com/stlink-org/stlink),
     - On Windows install [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) to the default directory.
 
-4. Before working with a Cyphal node, you should configure the Cyphal-related environment variables.
+5. Before working with a Cyphal node, you should configure the Cyphal-related environment variables.
 Check Cyphal for help. You can use [scripts/cyphal](scripts/cyphal) as a hint.
+
+## 2. (FOR CYPHAL) SETUP ENVIRONMENT VARIABLES
+
+To start with Cyphal/CAN (pycyphal, yakut, yukon) the following environment variables should be configured:
+
+| Environment variable | Meaning |
+| -------------------- | - |
+| CYPHAL_PATH          | Path to DSDL. Let's use the default:`$HOME/.cyphal` |
+| UAVCAN__NODE__ID     | The application node identifier |
+| UAVCAN__CAN__IFACE   | CAN iface name |
+| UAVCAN__CAN__BITRATE | Arbitration/data segment bits per second |
+| UAVCAN__CAN__MTU     | Maximum transmission unit: 8 for classic CAN |
+
+## 3. USAGE
 
 ### 1. Test cyphal specification
 
@@ -181,7 +206,7 @@ rl-socketcan
 
 ### UC13-14. Create slcan linux/windows -->
 
-## Developer notes
+## 4. DEVELOPER NOTES
 
 Deploy to [TestPyPI](https://test.pypi.org/project/raccoonlab-tools/):
 
@@ -195,6 +220,6 @@ Deploy to [PyPI](https://pypi.org/project/raccoonlab-tools/):
 ./scripts/deploy.sh --pypi
 ```
 
-## License
+## 5. USAGE TERMS
 
 The scripts are distributed under MIT license. In general, you can do with them whatever you want. If you find a bug, please suggest a PR or an issue.
