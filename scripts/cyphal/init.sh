@@ -115,7 +115,7 @@ if [ -z ${UAVCAN__NODE__ID+x} ]; then
     export UAVCAN__NODE__ID="$node_id"
 fi
 if [ -z ${CYPHAL_PATH+x} ]; then
-    export CYPHAL_PATH="$HOME/.cyphal/zubax_dsdl:$HOME/.cyphal/public_regulated_data_types/"
+    export CYPHAL_PATH="$HOME/.cyphal/zubax_dsdl:$HOME/.cyphal/public_regulated_data_types:$HOME/.cyphal/ds015"
 fi
 echo "2. Yakut environment variables:
     export UAVCAN__CAN__IFACE=$UAVCAN__CAN__IFACE
