@@ -8,40 +8,38 @@
 
 ## 1. INSTALLATION
 
-1. Install the package from pypi, test.pypi or from sources:
-    ```bash
-    pip install raccoonlab-tools
-    ```
-    ```bash
-    pip install -i https://test.pypi.org/simple/ raccoonlab-tools
-    ```
-    ```bash
-    git clone https://github.com/PonomarevDA/tools.git
-    cd tools
-    pip install .
-    ```
-2. Clone Cyphal DSDL if you want to use Cyphal
-    ```
-    git clone https://github.com/OpenCyphal/public_regulated_data_types.git ~/.cyphal/public_regulated_data_types
+**1. Install the package from pypi, test.pypi or from sources**
 
-    git clone https://github.com/Zubax/zubax_dsdl.git ~/.cyphal/zubax_dsdl
+```bash
+pip install raccoonlab-tools
+```
+```bash
+pip install -i https://test.pypi.org/simple/ raccoonlab-tools
+```
+```bash
+git clone https://github.com/PonomarevDA/tools.git
+cd tools
+pip install .
+```
 
-    git clone -b pr-add-gnss https://github.com/PonomarevDA/ds015.git ~/.cyphal/ds015
-    ```
-3. (Skip this step at the moment) Clone the nodes config files somewhere. We recommend `~/.raccoonlab_tools/vendors` For example:
-    ```bash
-    mkdir -p ~/.raccoonlab_tools/vendors/raccoonlab
-    cd ~/.raccoonlab_tools/vendors/raccoonlab
-    git clone https://github.com/RaccoonlabDev/raccoonlab_nodes_configs.git .
-    ```
-4. Install additional dependencies if you want to upload a firmware with STM32-programmer:
-    - On ubuntu install [stlink](https://github.com/stlink-org/stlink),
-    - On Windows install [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html) to the default directory.
+**2. Install dependencies**
 
-5. Before working with a Cyphal node, you should configure the Cyphal-related environment variables.
-Check Cyphal for help. You can use [scripts/cyphal](scripts/cyphal) as a hint.
+If you already have a Cyphal in your system, you probably don't need to install anything additional and have your own way of handling the environment variables and DSDL. Just check [scripts/ubuntu.sh](scripts/ubuntu.sh) script in case if you miss something.
 
-## 2. (FOR CYPHAL) SETUP ENVIRONMENT VARIABLES
+But if you use Cyphal for the first time or deploy a project in a new system, consider to run [scripts/ubuntu.sh](scripts/ubuntu.sh) script. This script:
+1. Install all recommended dependencies,
+2. Clone recommended DSDL to `~/.cyphal` directory,
+3. Create in `~/.cyphal` directory a `setup.sh` script that configure cyphal related environment variables and append `source $HOME/cyphal/setup.sh` to the end of your `.bashrc` file, so your shell will automatically setup the environment variables.
+
+```bash
+# By default, it installs both Cyphal and DroneCAN dependencies:
+./scripts/ubuntu.sh
+
+# Try --help option to get usage details. It allows to perform more precise installation:
+./scripts/ubuntu.sh --help
+```
+
+<details><summary>Click here for details about which environment variables are required for a Cyphal application</summary>
 
 To start with Cyphal/CAN (pycyphal, yakut, yukon) the following environment variables should be configured:
 
@@ -52,6 +50,24 @@ To start with Cyphal/CAN (pycyphal, yakut, yukon) the following environment vari
 | UAVCAN__CAN__IFACE   | CAN iface name |
 | UAVCAN__CAN__BITRATE | Arbitration/data segment bits per second |
 | UAVCAN__CAN__MTU     | Maximum transmission unit: 8 for classic CAN |
+
+> Check pycyphal/yakut/yukon docs for additional details
+
+</details>
+
+## 2. LINUX PREPARATION (SOCKETCAN)
+
+By default, DroneCAN and Cyphal/CAN uses cross-platform transport interface [Python-CAN](https://python-can.readthedocs.io/en/stable/) [CAN over Serial / SLCAN](https://python-can.readthedocs.io/en/stable/interfaces/slcan.html).
+
+On Linux, [the socketcan interface](https://python-can.readthedocs.io/en/stable/interfaces/socketcan.html) is recommended. Unlike SLCAN, socketcan interface allows to share the same CAN interface with multiple processes, so you can run a few pycyphal scripts, yukon, yakut simultaniously.
+
+You can run the following script:
+
+```bash
+./scripts/socketcan.sh
+```
+
+For a Cyphal application after creating socketcan interface, you need to update `UAVCAN__CAN__IFACE` environment variable. Just call `source ~/.bashrc`.
 
 ## 3. USAGE
 
