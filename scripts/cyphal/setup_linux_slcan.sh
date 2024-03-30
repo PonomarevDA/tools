@@ -2,7 +2,7 @@
 export CYPHAL_PATH="\
 $HOME/.cyphal/zubax_dsdl:\
 $HOME/.cyphal/public_regulated_data_types/:\
-$HOME/.cyphal/ds015_dsdl/"
+$HOME/.cyphal/ds015/"
 
 export UAVCAN__NODE__ID=127
 export UAVCAN__CAN__IFACE="slcan:/dev/ttyACM0@1000000"
