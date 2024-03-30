@@ -1,9 +1,9 @@
 #!/bin/bash
 SCRIPT_NAME=$(basename $BASH_SOURCE)
 REPO_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-HELP="usage: $SCRIPT_NAME [-h|--help] [-y|--yes] [--stm32-only] [--cyphal-only] [--cyphal-only].
+HELP="usage: $SCRIPT_NAME [-h|--help] [-y|--yes] [--cyphal-only] [--dronecan-only] [--stm32-only].
 
-The scripts intstall dependencies for RaccoonLab tools.
+The scripts intstall dependencies for Cyphal/DroneCAN RaccoonLab tools.
 
 options:
     -y, --yes               Force yes when install with APT. Usefull for CI.
@@ -63,14 +63,17 @@ while [[ $# -gt 0 ]]; do
 done
 
 # 1. Install common dependency for DroneCAN and Cyphal
-$SUDO apt-get install $FORCE_APT_INSTALL net-tools # ifconfig: command not found
-$SUDO apt-get install $FORCE_APT_INSTALL can-utils # sudo: slcand: command not found
-$SUDO apt-get install $FORCE_APT_INSTALL iproute2 # sudo: ip: command not found, sudo: tc: command not found
-python3 -m pip install pyserial python-can pytest
+if [ $INSTALL_DRONECAN == 'y' ] || [ $INSTALL_CYPHAL == 'y' ]; then
+    $SUDO apt-get install $FORCE_APT_INSTALL net-tools # ifconfig: command not found
+    $SUDO apt-get install $FORCE_APT_INSTALL can-utils # sudo: slcand: command not found
+    $SUDO apt-get install $FORCE_APT_INSTALL iproute2 # sudo: ip: command not found, sudo: tc: command not found
+    python3 -m pip install pyserial python-can pytest
+    python3 -m pip install netifaces # ModuleNotFoundError: No module named 'netifaces'
 
-kernel_release=$(uname -r)
-if [[ $kernel_release == *azure ]]; then
-    $SUDO apt-get install $FORCE_APT_INSTALL linux-modules-extra-$(uname -r)
+    kernel_release=$(uname -r)
+    if [[ $kernel_release == *azure ]]; then
+        $SUDO apt-get install $FORCE_APT_INSTALL linux-modules-extra-$(uname -r)
+    fi
 fi
 
 # 2. Install DroneCAN dependency
@@ -78,15 +81,39 @@ if [[ $INSTALL_DRONECAN == 'y' ]]; then
     python3 -m pip install pydronecan 
 fi
 
-# 3. Install Cyphal dependency and clone Cyphal DSDL
+# 3. Setup Cyphal
 if [[ $INSTALL_CYPHAL == 'y' ]]; then
+    # 3.1. Install dependency
     python3 -m pip install yakut pytest pytest-asyncio # cython pycyphal jq
+
+    # 3.2. Clone DSDL
     git clone https://github.com/OpenCyphal/public_regulated_data_types.git ~/.cyphal/public_regulated_data_types
     git clone https://github.com/Zubax/zubax_dsdl.git ~/.cyphal/zubax_dsdl
     git clone -b pr-add-gnss https://github.com/PonomarevDA/ds015.git ~/.cyphal/ds015
+
+    # 3.3. Setup envorionment variables in ~/.bashrc
+    lines=(\
+        "export CYPHAL_PATH=\"\\"
+        "\$HOME/.cyphal/zubax_dsdl:\\"
+        "\$HOME/.cyphal/public_regulated_data_types:\\"
+        "\$HOME/.cyphal/ds015\""
+        ""
+        "export UAVCAN__NODE__ID=127"
+        "export UAVCAN__CAN__IFACE=\"\$(rl-get-can-iface)\""
+        "export UAVCAN__CAN__BITRATE=\"1000000 1000000\""
+        "export UAVCAN__CAN__MTU=8"
+    )
+    SETUP_FILE_PATH="$HOME/.cyphal/setup.sh"
+    echo "#!/bin/bash" > $SETUP_FILE_PATH
+    for line in "${lines[@]}"; do
+        echo $line >> $SETUP_FILE_PATH
+    done
+    echo "source $HOME/.cyphal/setup.sh" >> ~/.bashrc
 fi
 
-# 5. STM32
+# 4. STM32
+# For Ubuntu you need: [stlink](https://github.com/stlink-org/stlink)
+# For Windows you need: [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html)
 if [[ $INSTALL_STM32 == 'y' ]]; then
     $SUDO apt-get install $FORCE_APT_INSTALL gcc-arm-none-eabi stlink-tools
 fi

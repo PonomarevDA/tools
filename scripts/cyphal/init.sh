@@ -84,9 +84,9 @@ echo "$SCRIPT_NAME config:
 # 1. Create SLCAN based on CAN sniffer
 if [[ -z $(ifconfig | grep $interface) ]]; then
     if [[ $slcan_or_vcan == "slcan" ]]; then
-        $REPOSITORY_PATH/can/create_slcan.sh -i $interface
+        $REPOSITORY_PATH/socketcan.sh -i $interface
     elif [[ $slcan_or_vcan == "vcan" ]]; then
-        $REPOSITORY_PATH/can/create_slcan.sh -i $interface -v
+        $REPOSITORY_PATH/socketcan.sh -i $interface -v
     fi
     if [ $? -eq 0 ]; then
         step_result_text="has been created"

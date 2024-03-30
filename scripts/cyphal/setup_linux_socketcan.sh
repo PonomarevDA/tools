@@ -1,8 +1,8 @@
 #!/bin/bash
 export CYPHAL_PATH="\
-$HOME/.cyphal/zubax_dsdl:\
-$HOME/.cyphal/public_regulated_data_types/:\
-$HOME/.cyphal/ds015/"
+    $HOME/.cyphal/zubax_dsdl:\
+    $HOME/.cyphal/public_regulated_data_types/:\
+    $HOME/.cyphal/ds015/"
 
 export UAVCAN__NODE__ID=127
 export UAVCAN__CAN__IFACE="socketcan:slcan0"

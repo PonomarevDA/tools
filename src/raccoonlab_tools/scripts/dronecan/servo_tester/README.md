@@ -5,7 +5,7 @@
 Send RawCommand and listen for NodeStatus.
 
 ```bash
-./can/create_slcan.sh
+./socketcan.sh
 ./dronecan/servo_tester.py
 ```
 
