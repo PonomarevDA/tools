@@ -4,15 +4,7 @@ Supported CAN-sniffers:
 - [RaccoonLab CAN-sniffer and STM32 programmer](https://docs.raccoonlab.co/guide/programmer_sniffer/),
 - [Zubax Babel-Babel](https://shop.zubax.com/products/zubax-babel-babel-all-in-one-debugger-for-robotics-drone-development).
 
-## 1. Install
-
-Tools are based on can-utils.
-
-```bash
-./can/install.sh
-```
-
-## 2. Usage
+## 1. Usage
 
 To create SLCAN based on CAN-sniffer:
 
@@ -26,7 +18,7 @@ To create virtual CAN:
 ./can/create_slcan.sh -v
 ```
 
-## 3. Notes
+## 2. Notes
 
 **slcand**
 
