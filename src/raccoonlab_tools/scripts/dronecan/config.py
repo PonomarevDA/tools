@@ -40,7 +40,7 @@ def configure_parameters(config : dict, can_transport : str):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', required=True, help="path to yaml file")
+    parser.add_argument('config', help="path to yaml file")
     parser.add_argument('--can-transport', default=None, help=("Auto detect by default. Options: "
                                                                "slcan:/dev/ttyACM0, "
                                                                "socketcan:slcan0.")
