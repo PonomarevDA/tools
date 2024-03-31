@@ -143,7 +143,7 @@ class CircuitStatusVinSub(BaseSubscriber):
         volt = None if self.data is None else round(self.data.volt, 2)
         print(f"- crct.vin ({self.get_id_string()}): {volt} Volt")
 
-class GpsSatsSub(BaseSubscriber):
+class ZubaxGpsSatsSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.sats.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.primitive.scalar.Integer16_1_0)
     def print_data(self):
@@ -154,6 +154,27 @@ class GpsSatsSub(BaseSubscriber):
         print(f"- sats ({self.get_id_string()}): {value}")
         print("- lat:")
         print("- lon:")
+
+class ZubaxGpsPdopSub(BaseSubscriber):
+    def __init__(self, node, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.pdop.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, uavcan.primitive.scalar.Real32_1_0)
+    def print_data(self):
+        value = self.data.value if self.data is not None else None
+        print(f"- pdop ({self.get_id_string()}): {value:.2f}")
+
+class ZubaxGpsStatusSub(BaseSubscriber):
+    def __init__(self, node, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.status.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, uavcan.primitive.scalar.Integer16_1_0)
+    def print_data(self):
+        value = self.data.value if self.data is not None else None
+        INT_TO_STR = {
+            None : "-",
+            0 : "NO FIX (0)",
+            1 : "TIME_ONLY (1)",
+            2 : "2D_FIX (2)",
+            3 : "3D_FIX (3)",
+        }
+        print(f"- status ({self.get_id_string()}): {INT_TO_STR[value]}")
 
 class GpsTimeUtcSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2002, reg_name="uavcan.pub.gps.time_utc.id") -> None:
@@ -254,7 +275,9 @@ class GpsMagBaroMonitor(BaseMonitor):
         super().__init__(node, node_id)
 
         self.subs = [
-            GpsSatsSub(node, node_id),
+            ZubaxGpsSatsSub(node, node_id),
+            ZubaxGpsPdopSub(node, node_id),
+            ZubaxGpsStatusSub(node, node_id),
             GpsTimeUtcSub(node, node_id),
             MagnetometerSub(node, node_id),
             BaroPressureSub(node, node_id),
