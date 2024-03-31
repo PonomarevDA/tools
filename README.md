@@ -55,7 +55,7 @@ To start with Cyphal/CAN (pycyphal, yakut, yukon) the following environment vari
 
 </details>
 
-## 2. LINUX PREPARATION (SOCKETCAN)
+## 2. LINUX (SOCKETCAN)
 
 By default, DroneCAN and Cyphal/CAN uses cross-platform transport interface [Python-CAN](https://python-can.readthedocs.io/en/stable/) [CAN over Serial / SLCAN](https://python-can.readthedocs.io/en/stable/interfaces/slcan.html).
 
@@ -66,6 +66,14 @@ You can run the following script:
 ```bash
 ./scripts/socketcan.sh
 ```
+
+If you don't have a real CAN device, you can create a virtual CAN interface:
+
+```bash
+./scripts/socketcan.sh --virtual-can
+```
+
+Try `--help` option for more details.
 
 For a Cyphal application after creating socketcan interface, you need to update `UAVCAN__CAN__IFACE` environment variable. Just call `source ~/.bashrc`.
 
