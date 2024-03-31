@@ -69,6 +69,46 @@ class DeviceManager:
         return devices[0].port
 
     @staticmethod
+    def get_cyphal_can_iface() -> str:
+        """
+        Examples of output.
+        - slcan:/dev/ttyACM0@1000000
+        - socketcan:slcan0
+        """
+        devices = DeviceManager.find_transports()
+
+        if len(devices) == 0:
+            return ""
+
+        best_device_port = devices[0].port
+        if best_device_port.startswith("slcan"):
+            can_iface_name = f"socketcan:{best_device_port}"
+        else:
+            can_iface_name = f"slcan:{best_device_port}@1000000"
+
+        return can_iface_name
+
+    @staticmethod
+    def get_dronecan_can_iface() -> str:
+        """
+        Examples of output.
+        - slcan:/dev/ttyACM0
+        - slcan0
+        """
+        devices = DeviceManager.find_transports()
+
+        if len(devices) == 0:
+            return ""
+
+        best_device_port = devices[0].port
+        if best_device_port.startswith("slcan"):
+            can_iface_name = best_device_port
+        else:
+            can_iface_name = f"slcan:{best_device_port}"
+
+        return can_iface_name
+
+    @staticmethod
     def find_programmers(verbose=True) -> list:
         programmers = []
         ports = serial.tools.list_ports.comports()
@@ -106,7 +146,14 @@ class DeviceManager:
             for transport in transports:
                 print(f"- {transport}")
 
+def print_cyphal_can_iface():
+    print(DeviceManager.get_cyphal_can_iface())
+
+def print_dronecan_can_iface():
+    print(DeviceManager.get_dronecan_can_iface())
 
 if __name__ == "__main__":
     DeviceManager.find_transports(verbose=True)
     DeviceManager.find_programmers(verbose=True)
+    print_cyphal_can_iface()
+    print_dronecan_can_iface()

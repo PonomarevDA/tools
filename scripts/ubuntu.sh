@@ -99,7 +99,7 @@ if [[ $INSTALL_CYPHAL == 'y' ]]; then
         "\$HOME/.cyphal/ds015\""
         ""
         "export UAVCAN__NODE__ID=127"
-        "export UAVCAN__CAN__IFACE=\"\$(rl-get-can-iface)\""
+        "export UAVCAN__CAN__IFACE=\"\$(rl-get-cyphal-can-iface)\""
         "export UAVCAN__CAN__BITRATE=\"1000000 1000000\""
         "export UAVCAN__CAN__MTU=8"
     )

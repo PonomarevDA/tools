@@ -24,7 +24,7 @@ dependencies = {file = ["requirements.txt"]}
 
 [project.scripts]
 rl-get-info = "raccoonlab_tools.scripts.common.get_info:main"
-rl-get-can-iface = "raccoonlab_tools.scripts.common.get_can_iface:main"
+rl-get-cyphal-can-iface = "raccoonlab_tools.common.device_manager:print_cyphal_can_iface"
 rl-upload-firmware = "raccoonlab_tools.scripts.common.upload_firmware:main"
 rl-config = "raccoonlab_tools.scripts.dronecan.config:main"
 rl-monitor = "raccoonlab_tools.scripts.cyphal.monitor:main"
