@@ -11,7 +11,7 @@ def main():
     - socketcan:slcan0
     """
     try:
-        transport = DeviceManager.get_transport()
+        transport = DeviceManager.get_device_port()
     except Exception:
         return
 

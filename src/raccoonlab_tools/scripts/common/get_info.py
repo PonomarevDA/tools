@@ -32,7 +32,7 @@ def get_info_dronecan(transport : str) -> NodeInfo:
     return NodeFinder(node).get_info()
 
 def main():
-    transport = DeviceManager.get_transport(verbose=True)
+    transport = DeviceManager.get_device_port(verbose=True)
     can_protocol = CanProtocolParser.verify_protocol(transport, verbose=True)
     if can_protocol == Protocol.DRONECAN:
         node_info = get_info_dronecan(transport)

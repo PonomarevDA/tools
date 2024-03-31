@@ -24,7 +24,7 @@ def configure_parameters(config : dict, can_transport : str):
         return
 
     if can_transport is None:
-        can_transport = f'slcan:{DeviceManager.get_transport()}'
+        can_transport = f'slcan:{DeviceManager.get_device_port()}'
 
     node = dronecan.make_node(can_transport, node_id=100, bitrate=1000000, baudrate=1000000)
     target_node_id = NodeFinder(node).find_online_node()

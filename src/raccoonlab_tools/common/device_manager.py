@@ -57,12 +57,16 @@ class DeviceManager:
         return transports
 
     @staticmethod
-    def get_transport(verbose=False) -> str:
-        """ Return examples: ["/dev/ttyACM0", "COM16", "slcan0"] """
-        transports = DeviceManager.find_transports(verbose)
-        if len(transports) == 0:
+    def get_device_port(verbose=False) -> str:
+        """
+        Find device ports and return the best one.
+        Raise an exeption if it doesn't exist.
+        Return examples: ["/dev/ttyACM0", "COM16", "slcan0"]
+        """
+        devices = DeviceManager.find_transports(verbose)
+        if len(devices) == 0:
             raise TransportNotFoundException("[ERROR] CAN-transport has not been detected.")
-        return transports[0].port
+        return devices[0].port
 
     @staticmethod
     def find_programmers(verbose=True) -> list:

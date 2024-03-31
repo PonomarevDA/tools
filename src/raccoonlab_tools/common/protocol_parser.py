@@ -85,7 +85,7 @@ class CanProtocolParser:
         assert isinstance(verbose, bool)
 
         if transport is None:
-            transport = DeviceManager.get_transport(verbose=verbose)
+            transport = DeviceManager.get_device_port(verbose=verbose)
 
         protocol = CanProtocolParser._parse_protocol(transport)
         if protocol == Protocol.NONE:
@@ -146,5 +146,5 @@ class CanProtocolParser:
         return protocol
 
 if __name__ == "__main__":
-    transport = DeviceManager.get_transport(verbose=True)
+    transport = DeviceManager.get_device_port(verbose=True)
     CanProtocolParser.find_protocol(transport, verbose=True)
