@@ -56,13 +56,13 @@ class NodeFinder:
 
         return NodeFinder.target_node_id
 
-    async def get_info(self) -> dict:
+    async def get_info(self, number_of_attempts: int=3) -> dict:
         """Return a dictionary on success. Otherwise return None."""
         dest_node_id = await self.find_online_node()
 
         request = uavcan.node.GetInfo_1_0.Request()
         client = self.node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
-        for attempt in range(3):
+        for attempt in range(number_of_attempts):
             if attempt == 0:
                 print(f"[DEBUG] NodeInfo: send request to {dest_node_id}")
             else:
