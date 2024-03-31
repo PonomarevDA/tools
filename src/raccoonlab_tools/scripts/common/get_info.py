@@ -38,7 +38,9 @@ def main():
         node_info = get_info_dronecan(transport)
     elif can_protocol == Protocol.CYPHAL:
         node_info = asyncio.run(get_info_cyphal())
-    node_info.print_info("")
+
+    if node_info is not None:
+        node_info.print_info("")
 
 
 if __name__ == "__main__":
