@@ -38,6 +38,8 @@ rl-test-dronecan-specification = "raccoonlab_tools.scripts.dronecan.test_specifi
 rl-get-dronecan-params = "raccoonlab_tools.scripts.dronecan.get_params:main"
 rl-set-dronecan-params = "raccoonlab_tools.scripts.dronecan.set_params:main"
 
+rl-build-stm32-cubeide = "raccoonlab_tools.scripts.stm32.build_cubeide:main"
+
 [project.urls]
 "Homepage" = "https://github.com/PonomarevDA/tools"
 "Bug Tracker" = "https://github.com/PonomarevDA/tools/issues"
