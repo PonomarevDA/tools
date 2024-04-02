@@ -39,6 +39,7 @@ rl-get-dronecan-params = "raccoonlab_tools.scripts.dronecan.get_params:main"
 rl-set-dronecan-params = "raccoonlab_tools.scripts.dronecan.set_params:main"
 
 rl-build-stm32-cubeide = "raccoonlab_tools.scripts.stm32.build_cubeide:main"
+rl-stm32-test-ioc = "raccoonlab_tools.scripts.stm32.test_ioc:main"
 
 [project.urls]
 "Homepage" = "https://github.com/PonomarevDA/tools"
