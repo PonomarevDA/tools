@@ -159,7 +159,7 @@ class ZubaxGpsPdopSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.pdop.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.primitive.scalar.Real32_1_0)
     def print_data(self):
-        value = self.data.value if self.data is not None else None
+        value = self.data.value if self.data is not None else 0.0
         print(f"- pdop ({self.get_id_string()}): {value:.2f}")
 
 class ZubaxGpsStatusSub(BaseSubscriber):
@@ -189,14 +189,14 @@ class MagnetometerSub(BaseSubscriber):
         self.data = None
     def print_data(self):
         if self.data is not None:
-            print(f"Magnetometer zubax.mag ({self.get_id_string()}):")
+            print(f"MagneticFieldStrength zubax.mag ({self.get_id_string()}):")
             mag_field = self.data.ampere_per_meter.tolist()
-            print(f"- norm: {np.sqrt(np.sum(np.array(mag_field)**2)):.3f} Amper/meter")
-            print(f"- x: {mag_field[0]:.3f} Amper/meter")
-            print(f"- y: {mag_field[1]:.3f} Amper/meter")
-            print(f"- z: {mag_field[1]:.3f} Amper/meter")
+            print(f"- norm: {np.sqrt(np.sum(np.array(mag_field)**2)):.3f} A/m")
+            print(f"- x: {mag_field[0]:.3f} A/m")
+            print(f"- y: {mag_field[1]:.3f} A/m")
+            print(f"- z: {mag_field[2]:.3f} A/m")
         else:
-            print(f"Magnetometer ({self.get_id_string()}) : {Colors.WARNING}NO DATA{Colors.ENDC}")
+            print(f"MagneticFieldStrength ({self.get_id_string()}) : {Colors.WARNING}NO DATA{Colors.ENDC}")
 
 class BaroPressureSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2100, reg_name="uavcan.pub.zubax.baro.press.id") -> None:
