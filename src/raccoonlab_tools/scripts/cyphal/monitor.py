@@ -30,6 +30,8 @@ import reg.udral.physics.optics.HighColor_0_1
 import reg.udral.service.actuator.common.sp.Vector31_0_1
 import reg.udral.service.common.Readiness_0_1
 
+import ds015.service.gnss.Gnss_0_1
+
 from raccoonlab_tools.common.colorizer import Colorizer, Colors
 from raccoonlab_tools.cyphal.utils import NodeFinder, PortRegisterInterface
 from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol
@@ -82,6 +84,7 @@ class BaseSubscriber:
         self.reg_names = reg_name if isinstance(reg_name, tuple) else (reg_name, )
         self.data_type = data_type
         self.port_interface = PortRegisterInterface(self.node)
+
     async def init_sub(self):
         for reg_name in self.reg_names:
             self._id = await self.port_interface.get_id(self.node_id, reg_name)
@@ -102,6 +105,7 @@ class BaseSubscriber:
     async def callback(self, data, transfer_from):
         self.data = data
         self._transfer_from = transfer_from
+
     def get_id_string(self):
         if not self.id_updated:
             string =  str(self._id)
@@ -144,7 +148,7 @@ class CircuitStatusVinSub(BaseSubscriber):
         print(f"- crct.vin ({self.get_id_string()}): {volt} Volt")
 
 class ZubaxGpsSatsSub(BaseSubscriber):
-    def __init__(self, node, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.sats.id") -> None:
+    def __init__(self, node, node_id, def_id=2003, reg_name="uavcan.pub.zubax.gps.sats.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.primitive.scalar.Integer16_1_0)
     def print_data(self):
         print("GNSS:")
@@ -156,7 +160,7 @@ class ZubaxGpsSatsSub(BaseSubscriber):
         print("- lon:")
 
 class ZubaxGpsPdopSub(BaseSubscriber):
-    def __init__(self, node, node_id, def_id=2001, reg_name="uavcan.pub.zubax.gps.pdop.id") -> None:
+    def __init__(self, node, node_id, def_id=2004, reg_name="uavcan.pub.zubax.gps.pdop.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.primitive.scalar.Real32_1_0)
     def print_data(self):
         value = self.data.value if self.data is not None else 0.0
@@ -168,13 +172,34 @@ class ZubaxGpsStatusSub(BaseSubscriber):
     def print_data(self):
         value = self.data.value if self.data is not None else None
         INT_TO_STR = {
-            None : "-",
             0 : "NO FIX (0)",
             1 : "TIME_ONLY (1)",
             2 : "2D_FIX (2)",
             3 : "3D_FIX (3)",
         }
-        print(f"- status ({self.get_id_string()}): {INT_TO_STR[value]}")
+        if value in INT_TO_STR:
+            value = INT_TO_STR[value]
+        print(f"- status ({self.get_id_string()}): {value}")
+
+class DS015GpsGnssSub(BaseSubscriber):
+    def __init__(self, node, node_id, def_id=2005, reg_name="uavcan.pub.ds015.gps.gnss.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, ds015.service.gnss.Gnss_0_1)
+    def print_data(self):
+        SPOOFING_INT_TO_STR = {
+            0 : "UNKNOWN (0)",
+            1 : "NO_SPOOFING_INDICATED (1)",
+            2 : "SPOOFING_INDICATED (2)",
+            3 : "MULTIPLE_SPOOFING_INDICATIONS (3)",
+        }
+        try:
+            jamming_state = self.data.status.jamming_state
+            spoofing_state = SPOOFING_INT_TO_STR.get(self.data.status.spoofing_state)
+        except Exception as err:
+            jamming_state = err
+            spoofing_state = "err2"
+
+        print(f"- jamming_state ({self.get_id_string()}) {jamming_state}")
+        print(f"- spoofing_state {spoofing_state}")
 
 class GpsTimeUtcSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2002, reg_name="uavcan.pub.gps.time_utc.id") -> None:
@@ -278,6 +303,7 @@ class GpsMagBaroMonitor(BaseMonitor):
             ZubaxGpsSatsSub(node, node_id),
             ZubaxGpsPdopSub(node, node_id),
             ZubaxGpsStatusSub(node, node_id),
+            DS015GpsGnssSub(node, node_id),
             GpsTimeUtcSub(node, node_id),
             MagnetometerSub(node, node_id),
             BaroPressureSub(node, node_id),
