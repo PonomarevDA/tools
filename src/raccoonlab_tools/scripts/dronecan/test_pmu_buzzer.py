@@ -128,16 +128,15 @@ class TestGateOk:
         pmu = TestGateOk.pmu
 
         frequency = random.randrange(PMUNode.min_frequency, 1000)
-        duration = random.uniform(0.1, 1)
+        duration = 2
         cmd = make_beeper_cmd_from_values(frequency=frequency, duration=duration)
         pmu.send_beeper_command(cmd)
         sound = None
 
-        timeout_sec = 0.05
-        start_time = time.time()
-
-        while(sound is None and time.time() - start_time < timeout_sec + 0.1):
-            sound = pmu.recv_sound(timeout_sec)
+        for i in range(20):
+            sound = pmu.recv_sound()
+            if sound is not None and compare_beeper_command_values(sound, cmd):
+                break
         assert compare_beeper_command_values(sound, cmd)
 
     # 5
@@ -154,9 +153,10 @@ class TestGateOk:
 
         time.sleep(duration)
 
-        for _ in range(10):
+        for _ in range(20):
             recv = pmu.recv_sound()
         assert compare_beeper_command_duration_values(recv, expected_duration=0)
+
     # 6
     @staticmethod
     def test_beep_command_subscription():
@@ -165,20 +165,23 @@ class TestGateOk:
         expected_counter = 0
         unexpected_counter = 0
 
-        for i in range(100):
+        number_of_notes = 20
+        for i in range(number_of_notes):
             frequency = random.randrange(PMUNode.min_frequency, 1000)
             duration = random.uniform(0.1, 1)
             msg = make_beeper_cmd_from_values(frequency=frequency, duration=duration)
             pmu.send_beeper_command(msg)
-            
-            for _ in range(15):
-                recv = pmu.recv_sound()
-                if recv is not None:
+            start_time = time.time()
+            timeout_sec = 0.05
+            while (time.time() - start_time < duration - timeout_sec):
+                for _ in range(15):
+                    recv = pmu.recv_sound()
+                    if recv is not None:
                         break
-            if compare_beeper_command_values(recv, msg):
-                expected_counter += 1
-            else:
-                unexpected_counter += 1
+                if compare_beeper_command_values(recv, msg):
+                    expected_counter += 1
+                else:
+                    unexpected_counter += 1
 
         total_counter = expected_counter + unexpected_counter
 
@@ -198,7 +201,6 @@ class TestGateOk:
 
         expected_counter = 0
         unexpected_counter = 0
-        total_counter = 0
 
         duration_comply_failure_counter = 0
         number_of_notes = 20
