@@ -23,7 +23,6 @@ class LightsCommander:
 
         self.timer = time.time()
 
-        # the first command - turn off the lights
         self.frequency = random.randrange(1, 1000)
         self.duration = random.randrange(1, 1000)
         self.command = uavcan.equipment.indication.BeepCommand(
@@ -36,8 +35,8 @@ class LightsCommander:
 
     def spin(self):
         while True:
-            self.frequency = random.randrange(1, 1000)
-            self.duration = random.randrange(1, 1000)
+            self.frequency = 440
+            self.duration = 1
             self.command = uavcan.equipment.indication.BeepCommand(
             frequency=self.frequency, duration=self.duration
             )
@@ -47,7 +46,7 @@ class LightsCommander:
                 print("Pub BeepCommand")
             else:
                 print("There is no any online node yet...")
-            time.sleep(1)
+            time.sleep(5)
 
     def _node_status_callback(self, msg):
         self.online_nodes.add(msg.transfer.source_node_id)

@@ -100,8 +100,7 @@ class TestGateOk:
         Parameter(name=PARAM_BATTERY_MODEL_INSTANCE_ID, value=0),
         Parameter(name=PARAM_BUZZER_ERROR_MELODY, value=127),
         Parameter(name=PARAM_BUZZER_FREQUENCY, value=ParamLightsType.SOLID),
-        Parameter(name=PARAM_GATE_THRESHOLD, value=0),
-        # Parameter(name=PARAM_GATE_THRESHOLD, value=4095),
+        Parameter(name=PARAM_GATE_THRESHOLD, value=4095),
         Parameter(name=PARAM_BUZZER_VERBOSE, value=1),
     ]
     pmu = PMUNode()
