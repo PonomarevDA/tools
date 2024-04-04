@@ -74,6 +74,15 @@ class PMUNode:
         commander.store_persistent_states()
         commander.restart()
 
+    def check_beep_cmd_response(self, msg: dronecan.uavcan.equipment.indication.BeepCommand) -> bool:
+        """"
+            Returns true if the received msg is equal to msg, false - otherwise
+        """
+        for _ in range(15):
+            recv = self.recv_sound()
+                
+        assert recv is not None
+        return compare_beeper_command_values(recv, msg):
 
 def make_beeper_cmd_from_values(frequency: float, duration: float):
     return dronecan.uavcan.equipment.indication.BeepCommand(
@@ -144,7 +153,6 @@ class TestGateOk:
         TestGateOk.pmu.configure(TestGateOk.config)
         time.sleep(5)
 
-    # 3
     @staticmethod
     def test_healthy_node_sound_after_restart():
         pmu = TestGateOk.pmu
@@ -156,7 +164,6 @@ class TestGateOk:
             recv, expected_duration=expected_duration
         )
 
-    # 4
     @pytest.mark.dependency(depends=["test_healthy_node_sound_after_restart"])
     @staticmethod
     def test_send_random_sound():
@@ -164,19 +171,12 @@ class TestGateOk:
 
         frequency = TestGateOk.randomizer.randrange(start=PMUNode.min_frequency, stop=1000, step=10)
         duration = 2
-        cmd = make_beeper_cmd_from_values(frequency=frequency, duration=duration)
-        pmu.send_beeper_command(cmd)
+        msg = make_beeper_cmd_from_values(frequency=frequency, duration=duration)
+        pmu.send_beeper_command(msg)
         recv = None
 
-        for i in range(20):
-            recv = pmu.recv_sound()
-            if recv is not None and compare_beeper_command_values(recv, cmd):
-                break
-        assert recv is not None
-        assert compare_beeper_command_values(recv, cmd)
+        assert pmu.check_beep_cmd_response(msg)
 
-    # 5
-    # @pytest.mark.dependency(depends=["test_send_random_sound"])
     @pytest.mark.dependency()
     @staticmethod
     def test_silence_after_command_ttl():
@@ -194,7 +194,6 @@ class TestGateOk:
         assert recv is not None
         assert compare_beeper_command_duration_values(recv, expected_duration=0)
 
-    # 6
     @staticmethod
     def test_beep_command_subscription():
         pmu = TestGateOk.pmu
@@ -203,22 +202,18 @@ class TestGateOk:
         unexpected_counter = 0
 
         number_of_notes = 20
-        for i in range(number_of_notes):
+        
+        for _ in range(number_of_notes):
             frequency = TestGateOk.randomizer.randrange(start=PMUNode.min_frequency, stop=1000, step=10)
             duration = TestGateOk.randomizer.uniform(0.1, 1)
 
             msg = make_beeper_cmd_from_values(frequency=frequency, duration=duration)
             pmu.send_beeper_command(msg)
-            start_time = time.time()
-            timeout_sec = 0.05
-            while time.time() - start_time < duration - timeout_sec:
-                for _ in range(15):
-                    recv = pmu.recv_sound()
 
-                if compare_beeper_command_values(recv, msg):
-                    expected_counter += 1
-                else:
-                    unexpected_counter += 1
+            if pmu.check_beep_cmd_response(msg):
+                expected_counter += 1
+            else:
+                unexpected_counter += 1
 
         total_counter = expected_counter + unexpected_counter
 
@@ -231,7 +226,6 @@ class TestGateOk:
         assert unexpected_counter == 0, f"{hint}"
         assert expected_counter > 0, f"{hint}"
 
-    # 7
     @staticmethod
     def test_beep_command_subscription_with_duration():
         pmu = TestGateOk.pmu
@@ -241,7 +235,7 @@ class TestGateOk:
 
         duration_comply_failure_counter = 0
         number_of_notes = 20
-        for i in range(number_of_notes):
+        for _ in range(number_of_notes):
             frequency = TestGateOk.randomizer.randrange(start=PMUNode.min_frequency, stop=1000, step=10)
             duration = TestGateOk.randomizer.uniform(0.1, 1)
 
@@ -250,18 +244,14 @@ class TestGateOk:
             start_time = time.time()
             timeout_sec = 0.05
             while time.time() - start_time < duration - timeout_sec:
-                for _ in range(15):
-                    recv = pmu.recv_sound()
-                    if recv is not None:
-                        break
-                if compare_beeper_command_values(recv, msg):
+                if pmu.check_beep_cmd_response(msg):
                     expected_counter += 1
                 else:
                     unexpected_counter += 1
 
             for _ in range(15):
                 recv = pmu.recv_sound()
-
+            assert recv is not None
             if not compare_beeper_command_duration_values(recv, expected_duration=0):
                 duration_comply_failure_counter += 1
 

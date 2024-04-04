@@ -8,6 +8,7 @@ import random
 import dronecan
 from dronecan import uavcan
 import time
+import secrets
 
 
 class LightsCommander:
@@ -23,22 +24,16 @@ class LightsCommander:
 
         self.timer = time.time()
 
-        self.frequency = random.randrange(1, 1000)
-        self.duration = random.randrange(1, 1000)
-        self.command = uavcan.equipment.indication.BeepCommand(
-            frequency=self.frequency, duration=self.duration
-        )
-
         self.node.add_handler(uavcan.protocol.NodeStatus, self._node_status_callback)
 
         self.online_nodes = set()
 
     def spin(self):
         while True:
-            self.frequency = 440
-            self.duration = 1
+            frequency = 440
+            duration = 1
             self.command = uavcan.equipment.indication.BeepCommand(
-            frequency=self.frequency, duration=self.duration
+            frequency=frequency, duration=duration
             )
             self.node.spin(0.5)
             if len(self.online_nodes) >= 1:
