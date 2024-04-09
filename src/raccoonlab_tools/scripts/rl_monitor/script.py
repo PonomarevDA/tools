@@ -219,8 +219,13 @@ class DS015GpsCovSub(BaseSubscriber):
             pos = self.data.point_covariance_urt
             vel = self.data.velocity_covariance_urt
             print(
-                f"  - {pos[0]}, {pos[1]}, {pos[2]}, {pos[3]}, {pos[4]}, {pos[5]}\n"
-                f"  - {vel[0]}, {vel[1]}, {vel[2]}, {vel[3]}, {vel[4]}, {vel[5]}"
+                "  Position NED [m^2]                  Velocity NED [m^2/s^2]\n"
+                f"  {pos[0]:>10,.3E} {pos[1]:>10,.3E} {pos[2]:>10,.3E}  "
+                f"  {vel[0]:>10,.3E} {vel[1]:>10,.3E} {vel[2]:>10,.3E}\n"
+                f"  {pos[1]:>10,.3E} {pos[3]:>10,.3E} {pos[4]:>10,.3E}  "
+                f"  {vel[1]:>10,.3E} {vel[3]:>10,.3E} {vel[4]:>10,.3E}\n"
+                f"  {pos[2]:>10,.3E} {pos[4]:>10,.3E} {pos[5]:>10,.3E}  "
+                f"  {vel[2]:>10,.3E} {vel[4]:>10,.3E} {vel[5]:>10,.3E}"
             )
         except Exception:
             pass
