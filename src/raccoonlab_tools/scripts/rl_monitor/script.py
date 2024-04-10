@@ -33,8 +33,9 @@ import reg.udral.service.common.Readiness_0_1
 import ds015.service.gnss.Gnss_0_1
 import ds015.service.gnss.Covariance_0_1
 
+from raccoonlab_tools.scripts.rl_monitor.base_subscriber import BaseSubscriber
 from raccoonlab_tools.common.colorizer import Colorizer, Colors
-from raccoonlab_tools.cyphal.utils import NodeFinder, PortRegisterInterface
+from raccoonlab_tools.cyphal.utils import NodeFinder
 from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol
 
 
@@ -64,56 +65,6 @@ class HighColorPub:
         self._pub_counter += 1
         await self._pub.publish(self.msg)
 
-
-class BaseSubscriber:
-    def __init__(self,
-                 node : pycyphal.application._node_factory.SimpleNode,
-                 node_id : int,
-                 def_id : int,
-                 reg_name : str,
-                 data_type) -> None:
-        assert isinstance(node, pycyphal.application._node_factory.SimpleNode)
-        assert isinstance(node_id, int)
-        assert isinstance(def_id, int)
-        assert isinstance(reg_name, str) or isinstance(reg_name, tuple)
-        self.node = node
-        self.data = None
-        self._id = None
-        self.id_updated = False
-        self.node_id = node_id
-        self.def_id = def_id
-        self.reg_names = reg_name if isinstance(reg_name, tuple) else (reg_name, )
-        self.data_type = data_type
-        self.port_interface = PortRegisterInterface(self.node)
-
-    async def init_sub(self):
-        for reg_name in self.reg_names:
-            self._id = await self.port_interface.get_id(self.node_id, reg_name)
-            print(f"y r {self.node_id} {reg_name} # {self._id}")
-            if self._id is not None:
-                break
-        if self._id is None:
-            print(f"[WARN] {self.reg_names} is not exist")
-            return
-
-        self.id_updated = (self._id == 0) or (self._id > 8191)
-
-        if self.id_updated:
-            self._id = await self.port_interface.set_id(self.node_id, reg_name, self.def_id)
-        assert isinstance(self._id, int), reg_name
-        self.sub = self.node.make_subscriber(self.data_type, self._id).receive_in_background(self.callback)
-
-    async def callback(self, data, transfer_from):
-        self.data = data
-        self._transfer_from = transfer_from
-
-    def get_id_string(self):
-        if not self.id_updated:
-            string =  str(self._id)
-        else:
-            toggle = bool(int(time.time() * 1000) % 1000 > 500)
-            string =  f"{Colors.OKCYAN}{self._id}{Colors.ENDC}" if toggle else str(self._id)
-        return string
 
 class CircuitStatusTemperatureSub(BaseSubscriber):
     def __init__(self,
@@ -166,7 +117,7 @@ class ZubaxGpsSatsSub(BaseSubscriber):
         value = self.data.value if self.data is not None else None
         if value == 0:
             value = Colorizer.header(value)
-        print(f"- zubax.gps.sats ({self.get_id_string()}:{self.str_data_type}): {value}")
+        print(f"- zubax.gps.sats ({self.get_id_string()}:{self.str_data_type}, {self.rate()} msg/sec): {value}")
 
 class ZubaxGpsPdopSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=GPS_DEF_PORTS['pdop'], reg_name="uavcan.pub.zubax.gps.pdop.id") -> None:
@@ -188,7 +139,7 @@ class ZubaxGpsStatusSub(BaseSubscriber):
         }
         if value in INT_TO_STR:
             value = INT_TO_STR[value]
-        print(f"- zubax.gps.status ({self.get_id_string()}:uavcan.primitive.scalar.Integer16.1.0): {value}")
+        print(f"- zubax.gps.status ({self.get_id_string()}:uavcan.primitive.scalar.Integer16.1.0, {self.rate()} msg/sec): {value}")
 
 class DS015GpsGnssSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2005, reg_name="uavcan.pub.ds015.gps.gnss.id") -> None:
@@ -207,7 +158,7 @@ class DS015GpsGnssSub(BaseSubscriber):
             jamming_state = err
             spoofing_state = "err2"
 
-        print(f"- ds015.gps.gnss ({self.get_id_string()}:ds015.service.gnss.Gnss.0.1):\n"
+        print(f"- ds015.gps.gnss ({self.get_id_string()}:ds015.service.gnss.Gnss.0.1, {self.rate()} msg/sec):\n"
               f"    jamming_state {jamming_state}\n"
               f"    spoofing_state {spoofing_state}"
         )
@@ -216,7 +167,7 @@ class DS015GpsCovSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=GPS_DEF_PORTS['cov'], reg_name="uavcan.pub.ds015.gps.cov.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, ds015.service.gnss.Covariance_0_1)
     def print_data(self):
-        print(f"- ds015.gps.cov ({self.get_id_string()}:ds015.service.gnss.Covariance.0.1):")
+        print(f"- ds015.gps.cov ({self.get_id_string()}:ds015.service.gnss.Covariance.0.1, {self.rate()} msg/sec):")
         try:
             pos = self.data.point_covariance_urt
             vel = self.data.velocity_covariance_urt
@@ -246,7 +197,7 @@ class MagnetometerSub(BaseSubscriber):
     def print_data(self):
         print("MagneticFieldStrength:")
         if self.data is not None:
-            print(f"- zubax.mag ({self.get_id_string()}:uavcan.si.sample.magnetic_field_strength.Vector3.1.1):")
+            print(f"- zubax.mag ({self.get_id_string()}:uavcan.si.sample.magnetic_field_strength.Vector3.1.1, {self.rate()} msg/sec):")
             mag_field = self.data.ampere_per_meter.tolist()
             print(f"   Norm: {np.sqrt(np.sum(np.array(mag_field)**2)):.3f} A/m")
             print(f"   x: {mag_field[0]:.3f} A/m")
@@ -261,14 +212,14 @@ class BaroPressureSub(BaseSubscriber):
     def print_data(self):
         print("Barometer:")
         value = self.data.pascal if self.data is not None else 0.0
-        print(f"- zubax.baro.press ({self.get_id_string()}:uavcan.si.sample.pressure.Scalar_1.0): {value:.2f} Pascal")
+        print(f"- zubax.baro.press ({self.get_id_string()}:uavcan.si.sample.pressure.Scalar_1.0, {self.rate()} msg/sec): {value:.2f} Pascal")
 
 class BaroTemperatureSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2101, reg_name="uavcan.pub.zubax.baro.temp.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.si.sample.temperature.Scalar_1_0)
     def print_data(self):
         value = self.data.kelvin if self.data is not None else 0.0
-        print(f"- zubax.baro.temp ({self.get_id_string()}:uavcan.si.sample.temperature.Scalar_1.0): {value:.2f} Kelvin")
+        print(f"- zubax.baro.temp ({self.get_id_string()}:uavcan.si.sample.temperature.Scalar_1.0, {self.rate()} msg/sec): {value:.2f} Kelvin")
 
 class SetpointSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2342, reg_name="uavcan.pub.udral.esc.0.id") -> None:
