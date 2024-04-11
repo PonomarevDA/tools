@@ -94,7 +94,7 @@ class CyphalGnss:
             logging.info("Let's try to configure the registers, Attempts left = %s", attempts_left)
             await port_interface.set_id(gnss_id, CyphalGnss.UBX_RX_REG, 4000)
             await port_interface.set_id(gnss_id, CyphalGnss.UBX_TX_REG, 4001)
-            return CyphalGnss.create(node, gnss_id, attempts_left - 1)
+            return await CyphalGnss.create(node, gnss_id, attempts_left - 1)
 
         return CyphalGnss(node, fragment_pub_port_id, fragment_sub_port_id)
 
