@@ -4,6 +4,8 @@
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
 import time
+import numpy
+import copy
 import pycyphal.application
 from raccoonlab_tools.common.colorizer import Colors
 from raccoonlab_tools.cyphal.utils import PortRegisterInterface
@@ -48,6 +50,8 @@ class BaseSubscriber:
         self.port_interface = PortRegisterInterface(self.node)
         self._msg_counter = 0
         self._rate_estiamtor = RateEstimator(window_size_sec=2.0)
+        self.min = None
+        self.max = None
 
     async def init_sub(self):
         for reg_name in self.reg_names:
@@ -81,3 +85,20 @@ class BaseSubscriber:
         assert isinstance(transfer_from, pycyphal.transport._transfer.TransferFrom)
         self.data = data
         self._rate_estiamtor.register_message()
+
+        if self.min is not None:
+            self._save_min_max(self.data, self.min, self.max)
+        else:
+            self.min = copy.deepcopy(self.data)
+            self.max = copy.deepcopy(self.data)
+
+    def _save_min_max(self, data, min_msg, max_msg):
+        public_attributes = [attr for attr in dir(data) if not attr.startswith('_') and attr.islower()]
+        for attribute in public_attributes:
+            value = getattr(data, attribute)
+            type_name = str(type(value))[8:-2]
+            if isinstance(value, int) or isinstance(value, float):
+                setattr(min_msg, attribute, min(value, getattr(min_msg, attribute)))
+                setattr(max_msg, attribute, max(value, getattr(max_msg, attribute)))
+            elif any(type_name.startswith(prefix) for prefix in ['uavcan.', 'ds015.', 'reg.', 'zubax.']):
+                self._save_min_max(value, getattr(min_msg, attribute), getattr(max_msg, attribute))

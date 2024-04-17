@@ -5,7 +5,7 @@
 
 import os
 import sys
-import time
+import copy
 import datetime
 import math
 import asyncio
@@ -30,6 +30,7 @@ import reg.udral.physics.optics.HighColor_0_1
 import reg.udral.service.actuator.common.sp.Vector31_0_1
 import reg.udral.service.common.Readiness_0_1
 
+import reg.udral.physics.kinematics.geodetic.PointStateVarTs_0_1 as PointStateVarTs_0_1
 import ds015.service.gnss.Gnss_0_1
 import ds015.service.gnss.Covariance_0_1
 
@@ -107,13 +108,19 @@ GPS_DEF_PORTS = {
     'pdop': 2409,
 }
 
+class ZubaxGpsPointSub(BaseSubscriber):
+    def __init__(self, node, node_id, def_id=GPS_DEF_PORTS['point'], reg_name="uavcan.pub.zubax.gps.point.id") -> None:
+        super().__init__(node, node_id, def_id, reg_name, PointStateVarTs_0_1)
+        self.str_data_type = "reg.udral.physics.kinematics.geodetic.PointStateVarTs.0.1"
+    def print_data(self):
+        print("GNSS:")
+        print(f"- zubax.gps.point ({self.get_id_string()}:{self.str_data_type}, {self.rate()} msg/sec)")
+
 class ZubaxGpsSatsSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=GPS_DEF_PORTS['sats'], reg_name="uavcan.pub.zubax.gps.sats.id") -> None:
         super().__init__(node, node_id, def_id, reg_name, uavcan.primitive.scalar.Integer16_1_0)
         self.str_data_type = "uavcan.primitive.scalar.Integer16.1.0"
     def print_data(self):
-        print("GNSS:")
-
         value = self.data.value if self.data is not None else None
         if value == 0:
             value = Colorizer.header(value)
@@ -159,6 +166,11 @@ class DS015GpsGnssSub(BaseSubscriber):
             spoofing_state = "err2"
 
         print(f"- ds015.gps.gnss ({self.get_id_string()}:ds015.service.gnss.Gnss.0.1, {self.rate()} msg/sec):\n"
+              f"    alt {self.data.point.altitude.meter:.2f} (from {self.min.point.altitude.meter:.2f} to {self.max.point.altitude.meter:.2f})\n"
+              f"    hdop {self.data.hdop:.2f} (from {self.min.hdop:.2f} to {self.max.hdop:.2f})\n"
+              f"    vdop {self.data.vdop:.2f} (from {self.min.vdop:.2f} to {self.max.vdop:.2f})\n"
+              f"    eph {self.data.horizontal_accuracy:.2f} (from {self.min.horizontal_accuracy:.2f} to {self.max.horizontal_accuracy:.2f})\n"
+              f"    epv {self.data.vertical_accuracy:.2f} (from {self.min.vertical_accuracy:.2f} to {self.max.vertical_accuracy:.2f})\n"
               f"    jamming_state {jamming_state}\n"
               f"    spoofing_state {spoofing_state}"
         )
@@ -226,13 +238,17 @@ class SetpointSub(BaseSubscriber):
         super().__init__(node, node_id, def_id, reg_name, reg.udral.service.actuator.common.sp.Vector31_0_1)
         self.max_recv_length = 0
     def print_data(self):
-        for idx in range(30, self.max_recv_length - 1, -1):
-            is_zero = math.isclose(self.data.value[idx], 0.0, rel_tol=1e-5)
-            if not is_zero:
-                self.max_recv_length = idx + 1
-                break
         print("Actuators:")
-        print(f"- udral.esc.0 ({self.get_id_string()}): {self.data.value[0:self.max_recv_length]}")
+        if self.data is None:
+            data = "NO DATA"
+        else:
+            for idx in range(30, self.max_recv_length - 1, -1):
+                is_zero = math.isclose(self.data.value[idx], 0.0, rel_tol=1e-5)
+                if not is_zero:
+                    self.max_recv_length = idx + 1
+                    break
+            data = self.data.value[0:self.max_recv_length]
+        print(f"- udral.esc.0 ({self.get_id_string()}): {data}")
 
 class ReadinessSub(BaseSubscriber):
     def __init__(self, node, node_id, def_id=2343, reg_name="uavcan.pub.udral.readiness.0.id") -> None:
@@ -283,6 +299,7 @@ class GpsMagBaroMonitor(BaseMonitor):
         super().__init__(node, node_id)
 
         self.subs = [
+            ZubaxGpsPointSub(node, node_id),
             ZubaxGpsSatsSub(node, node_id),
             ZubaxGpsPdopSub(node, node_id),
             ZubaxGpsStatusSub(node, node_id),
