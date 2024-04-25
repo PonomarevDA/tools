@@ -16,7 +16,7 @@ class ParamPWMChannelId(IntEnum):
     UI_PWM = 0
 
 
-class PWMArrayCommander:
+class PWMActuatorCommander:
     NUMBER_OF_PWM = 4
     MAX_VALUE = 1
     MIN_VALUE = -1
@@ -50,14 +50,14 @@ class PWMArrayCommander:
         values_iterator = cycle(values)
         for value in values_iterator:
             command_value = np.sin(value)
-            command = np.ones(PWMArrayCommander.NUMBER_OF_PWM) * command_value
+            command = np.ones(PWMActuatorCommander.NUMBER_OF_PWM) * command_value
 
             expected_status_vals = []
-            for i in range(PWMArrayCommander.NUMBER_OF_PWM):
+            for i in range(PWMActuatorCommander.NUMBER_OF_PWM):
                 expected_status_vals.append((command[i] + 1) * 50)
 
             array_command = []
-            for i in range(PWMArrayCommander.NUMBER_OF_PWM):
+            for i in range(PWMActuatorCommander.NUMBER_OF_PWM):
                 array_command.append(
                     uavcan.equipment.actuator.Command(
                         actuator_id=i, command_value=command[i]
@@ -71,7 +71,7 @@ class PWMArrayCommander:
             if len(self.online_nodes) >= 1:
                 self.node.broadcast(self.command)
                 print("Pub ARRAYCommand")
-                for i in range(PWMArrayCommander.NUMBER_OF_PWM):
+                for i in range(PWMActuatorCommander.NUMBER_OF_PWM):
                     self.expected_status_msg = uavcan.equipment.esc.Status(
                         esc_index=i,
                         power_rating_pct=int(expected_status_vals[i])
@@ -86,7 +86,7 @@ class PWMArrayCommander:
         print(f"Receive NodeStatus from node {msg.transfer.source_node_id}.")
 
 
-class PWMRawCommander:
+class PWMEscCommander:
     NUMBER_OF_PWM = 4
     MAX_VALUE = 8191
     MIN_VALUE = 0
@@ -120,20 +120,20 @@ class PWMRawCommander:
         values_iterator = cycle(values)
         for value in values_iterator:
             command_value = np.sin(value)
-            command = np.ones(PWMRawCommander.NUMBER_OF_PWM) * command_value
-            expected_status_vals = np.zeros(PWMRawCommander.NUMBER_OF_PWM)
+            command = np.ones(PWMEscCommander.NUMBER_OF_PWM) * command_value
+            expected_status_vals = np.zeros(PWMEscCommander.NUMBER_OF_PWM)
             self.command = uavcan.equipment.esc.RawCommand(
-                cmd=[int((val + 1) * PWMRawCommander.MAX_VALUE / 2)
+                cmd=[int((val + 1) * PWMEscCommander.MAX_VALUE / 2)
                      for val in command]
             )
-            for i in range(PWMRawCommander.NUMBER_OF_PWM):
+            for i in range(PWMEscCommander.NUMBER_OF_PWM):
                 expected_status_vals[i] = 100 * (command[i] + 1)
 
             self.node.spin(0.5)
             if len(self.online_nodes) >= 1:
                 self.node.broadcast(self.command)
                 print("Pub RAWCommand")
-                for i in range(PWMRawCommander.NUMBER_OF_PWM):
+                for i in range(PWMEscCommander.NUMBER_OF_PWM):
                     self.expected_status_msg = uavcan.equipment.esc.Status(
                         esc_index=i,
                         power_rating_pct=int(expected_status_vals[i])
@@ -149,8 +149,8 @@ class PWMRawCommander:
 
 
 class CommandTypes:
-    RAW = {"name": "raw", "class": PWMRawCommander}
-    ARRAY = {"name": "array", "class": PWMArrayCommander}
+    ESC = {"name": "esc", "class": PWMEscCommander}
+    ACTUATOR = {"name": "actuator", "class": PWMActuatorCommander}
 
 
 class PWMCommanderSelector:
@@ -159,10 +159,10 @@ class PWMCommanderSelector:
         command_type: str,
     ):
         self.commander = None
-        if command_type == CommandTypes.RAW["name"]:
-            self.commander = CommandTypes.RAW["class"]
+        if command_type == CommandTypes.ESC["name"]:
+            self.commander = CommandTypes.ESC["class"]
         else:
-            self.commander = CommandTypes.ARRAY["class"]
+            self.commander = CommandTypes.ACTUATOR["class"]
 
 
 def main():
@@ -183,10 +183,10 @@ def main():
         "-c",
         type=str,
         help=f"uavcan command type. \
-            Example: {CommandTypes.RAW[name_key]} tends to esc.RawCommand, \
-                {CommandTypes.ARRAY[name_key]} - actuator.ArrayCommand",
+            Example: {CommandTypes.ESC[name_key]} tends to esc.RawCommand, \
+                {CommandTypes.ACTUATOR[name_key]} - actuator.ArrayCommand",
         nargs="?",
-        default="raw",
+        default=CommandTypes.ESC[name_key],
     )
     args = parser.parse_args()
     selector = PWMCommanderSelector(args.command)
