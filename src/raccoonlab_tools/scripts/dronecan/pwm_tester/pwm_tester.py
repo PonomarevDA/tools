@@ -167,17 +167,20 @@ class PWMCommanderSelector:
 
 def main():
     parser = argparse.ArgumentParser(description=
-                                        "Simulated DroneCAN RawCommander")
+                "Simulated DroneCAN Commander for RawCommand and ArrayCommand.\
+                 Sends specified in command msg and the expected Status of receiver")
     name_key = "name"
     parser.add_argument(
-        "port",
+        "--port",
+        "-p",
         type=str,
         help="CAN sniffer port. Example: slcan:/dev/ttyACM0",
         nargs="?",
-        default="slcan:/dev/ttyACM0",
+        default="slcan0",
     )
     parser.add_argument(
-        "command",
+        "--command",
+        "-c",
         type=str,
         help=f"uavcan command type. \
             Example: {CommandTypes.RAW[name_key]} tends to esc.RawCommand, \
