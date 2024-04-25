@@ -11,6 +11,7 @@ import time
 import numpy as np
 from itertools import cycle
 
+
 class ParamPWMChannelId(IntEnum):
     UI_PWM = 0
 
@@ -38,25 +39,23 @@ class PWMArrayCommander:
 
         self.timer = time.time()
         self.node_status_msg = uavcan.equipment.actuator.Status()
-        self.node.add_handler(uavcan.protocol.NodeStatus, 
-                              self._node_status_callback)
+        self.node.add_handler(uavcan.protocol.NodeStatus,
+                               self._node_status_callback)
 
         self.online_nodes = set()
 
     def spin(self):
-        values = np.linspace(start=0, stop=2*np.pi, num=100)
+        values = np.linspace(start=0, stop=2 * np.pi, num=100)
         print(values.shape)
         values_iterator = cycle(values)
         for value in values_iterator:
             command_value = np.sin(value)
-            command = (
-                np.ones(PWMArrayCommander.NUMBER_OF_PWM) * command_value
-            )
+            command = np.ones(PWMArrayCommander.NUMBER_OF_PWM) * command_value
 
             expected_status_vals = []
             for i in range(PWMArrayCommander.NUMBER_OF_PWM):
                 expected_status_vals.append((command[i] + 1) * 50)
-            
+
             array_command = []
             for i in range(PWMArrayCommander.NUMBER_OF_PWM):
                 array_command.append(
@@ -74,7 +73,7 @@ class PWMArrayCommander:
                 print("Pub ARRAYCommand")
                 for i in range(PWMArrayCommander.NUMBER_OF_PWM):
                     self.expected_status_msg = uavcan.equipment.esc.Status(
-                        esc_index=i, 
+                        esc_index=i,
                         power_rating_pct=int(expected_status_vals[i])
                     )
                     self.node.broadcast(self.expected_status_msg)
@@ -111,20 +110,20 @@ class PWMRawCommander:
         self.timer = time.time()
         self.node_status_msg = uavcan.equipment.esc.Status()
 
-        self.node.add_handler(uavcan.protocol.NodeStatus, 
-                              self._node_status_callback)
+        self.node.add_handler(uavcan.protocol.NodeStatus,
+                               self._node_status_callback)
 
         self.online_nodes = set()
 
     def spin(self):
-        values = np.linspace(start=0, stop=2*np.pi, num=100)
+        values = np.linspace(start=0, stop=2 * np.pi, num=100)
         values_iterator = cycle(values)
         for value in values_iterator:
             command_value = np.sin(value)
             command = np.ones(PWMRawCommander.NUMBER_OF_PWM) * command_value
             expected_status_vals = np.zeros(PWMRawCommander.NUMBER_OF_PWM)
             self.command = uavcan.equipment.esc.RawCommand(
-                cmd=[int((val + 1) * PWMRawCommander.MAX_VALUE / 2) 
+                cmd=[int((val + 1) * PWMRawCommander.MAX_VALUE / 2)
                      for val in command]
             )
             for i in range(PWMRawCommander.NUMBER_OF_PWM):
@@ -136,7 +135,7 @@ class PWMRawCommander:
                 print("Pub RAWCommand")
                 for i in range(PWMRawCommander.NUMBER_OF_PWM):
                     self.expected_status_msg = uavcan.equipment.esc.Status(
-                        esc_index=i, 
+                        esc_index=i,
                         power_rating_pct=int(expected_status_vals[i])
                     )
                     self.node.broadcast(self.expected_status_msg)
@@ -153,21 +152,22 @@ class CommandTypes:
     RAW = {"name": "raw", "class": PWMRawCommander}
     ARRAY = {"name": "array", "class": PWMArrayCommander}
 
+
 class PWMCommanderSelector:
-    def __init__(self,
+    def __init__(
+        self,
         command_type: str,
-        ):
+    ):
         self.commander = None
-        if (command_type == CommandTypes.RAW["name"]):
+        if command_type == CommandTypes.RAW["name"]:
             self.commander = CommandTypes.RAW["class"]
         else:
             self.commander = CommandTypes.ARRAY["class"]
 
 
-
 def main():
     parser = argparse.ArgumentParser(description=
-                                     "Simulated DroneCAN RawCommander")
+                                        "Simulated DroneCAN RawCommander")
     name_key = "name"
     parser.add_argument(
         "port",
