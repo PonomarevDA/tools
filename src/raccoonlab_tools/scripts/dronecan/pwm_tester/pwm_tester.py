@@ -127,7 +127,7 @@ class PWMEscCommander:
                      for val in command]
             )
             for i in range(PWMEscCommander.NUMBER_OF_PWM):
-                expected_status_vals[i] = 100 * (command[i] + 1)
+                expected_status_vals[i] = 50 * (command[i] + 1)
 
             self.node.spin(0.5)
             if len(self.online_nodes) >= 1:
