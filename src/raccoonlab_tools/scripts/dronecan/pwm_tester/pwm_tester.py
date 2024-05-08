@@ -72,8 +72,8 @@ class PWMActuatorCommander:
                 self.node.broadcast(self.command)
                 print("Pub ARRAYCommand")
                 for i in range(PWMActuatorCommander.NUMBER_OF_PWM):
-                    self.expected_status_msg = uavcan.equipment.esc.Status(
-                        esc_index=i,
+                    self.expected_status_msg = uavcan.equipment.actuator.Status(
+                        actuator_id=i,
                         power_rating_pct=int(expected_status_vals[i])
                     )
                     self.node.broadcast(self.expected_status_msg)
