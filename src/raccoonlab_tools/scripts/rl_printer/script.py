@@ -3,15 +3,16 @@
 # Copyright (c) 2023-2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 """
-Suitable for XPRINTER XP-365B
+XPRINTER XP-365B driver
 """
 import os
 import subprocess
 import logging
+import argparse
 
 class Printer:
     @staticmethod
-    def print(filename, printer_name="Xerox_Xprinter_XP-365B"):
+    def print(filename, printer_name="XP-365B"):
         if not os.path.isfile(filename):
             logging.error("File %s is not exist", filename)
             return
@@ -26,5 +27,12 @@ class Printer:
             logging.error('Printer is unplugged or turned off')
             return
 
-        proc = subprocess.Popen(f"lp -d {printer_name} {filename}".split(), stdout=subprocess.PIPE)
+        cmd = ["lp", "-o", "media=Custom.40x30mm", "-d", printer_name, filename]
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         proc.communicate()
+
+if __name__ =="__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('file', help="File to be printed")
+    args = parser.parse_args()
+    Printer.print(args.file)
