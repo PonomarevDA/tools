@@ -18,7 +18,7 @@ PARAM_LIGHTS_ID                 = 'lights.id'
 PARAM_LIGHTS_MAX_INTENSITY      = 'lights.max_intensity'
 PARAM_LIGHTS_DEFAULT_COLOR      = 'lights.default_color'
 PARAM_LIGHTS_TYPE               = 'lights.type'
-PARAM_LIGHTS_BLINK_PERIOD       = 'lights.blink_period_ms'
+PARAM_LIGHTS_BLINK_PERIOD       = 'lights.period'
 PARAM_LIGHTS_DUTY_CYCLE_PCT     = 'lights.duty_cycle_pct'
 PARAM_LIGHTS_VERBOSE            = 'lights.verbose'
 
@@ -67,7 +67,7 @@ class LightsNode:
         self.node.publish(msg)
 
     def recv_color(self, timeout_sec=0.03):
-        res = self.node.sub_once(dronecan.uavcan.equipment.indication.LightsCommand, timeout_sec)
+        res = self.node.sub_once(dronecan.uavcan.equipment.indication.LightsCommand, timeout_sec=timeout_sec)
         color = res.message.commands[0].color
         return color
 
