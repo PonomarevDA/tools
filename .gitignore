@@ -6,3 +6,4 @@ __pycache__/
 report.txt
 dist/
 src/raccoonlab_tools.egg-info/
+*.log
