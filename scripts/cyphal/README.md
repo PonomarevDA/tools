@@ -55,7 +55,7 @@ There are a few approaches here.
     source cyphal/init.sh -i slcan0 -n 127 -v
     ```
 
-    ![](https://github.com/PonomarevDA/tools/blob/docs/assets/cyphal/cyphal_init.gif?raw=true)
+    <img src="https://github.com/PonomarevDA/tools/wiki/assets/cyphal/cyphal_init.gif" alt="drawing"/>
 
     For additional usage details please type:
 

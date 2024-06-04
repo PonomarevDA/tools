@@ -82,7 +82,7 @@ pip install pycyphal pytest pytest-asyncio
 
     A usage example is demonstrated below:
 
-    ![](https://github.com/PonomarevDA/tools/blob/docs/assets/cyphal/specification_checker.gif?raw=true)
+    <img src="https://github.com/PonomarevDA/tools/wiki/assets/cyphal/specification_checker.gif" alt="drawing"/>
 
 **2. Usage with Github Actions**
 

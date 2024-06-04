@@ -85,7 +85,7 @@ For a Cyphal application after creating socketcan interface, you need to update 
 rl-test-cyphal-specification
 ```
 
-![](https://github.com/PonomarevDA/tools/blob/docs/assets/cyphal/specification_checker.gif?raw=true)
+<img src="https://github.com/PonomarevDA/tools/wiki/assets/cyphal/specification_checker.gif" alt="drawing"/>
 
 ### 2. Test dronecan specification
 
@@ -97,8 +97,7 @@ rl-test-dronecan-specification
 rl-test-dronecan-gps-mag-baro
 ```
 
-![](https://github.com/PonomarevDA/tools/blob/docs/assets/rl-test-dronecan-specification.gif?raw=true)
-
+<img src="https://github.com/PonomarevDA/tools/wiki/assets/rl-test-dronecan-specification.gif" alt="drawing"/>
 
 ### 3. Get Node Info (Cyphal / DroneCAN)
 
@@ -164,8 +163,7 @@ params:
     uavcan.node.name: co.rl.mini
 ```
 
-![](https://github.com/PonomarevDA/tools/blob/docs/assets/rl-config.gif?raw=true)
-
+<img src="https://github.com/PonomarevDA/tools/wiki/assets/rl-dronecan-config.gif" alt="drawing"/>
 
 ### 6. Monitor
 
@@ -204,9 +202,9 @@ For RL GNSS it is possible to run u-center over Cyphal via `gps.ubx_tx` and `gps
 
 An illustration:
 
-![](https://github.com/PonomarevDA/tools/blob/docs/assets/gnss/ucenter/network_connection.png?raw=true)
+<img src="https://github.com/PonomarevDA/tools/wiki/assets/gnss/ucenter/network_connection.png" alt="drawing"/>
 
-![](https://github.com/PonomarevDA/tools/blob/docs/assets/gnss/ucenter/address.png?raw=true)
+<img src="https://github.com/PonomarevDA/tools/wiki/assets/gnss/ucenter/address.png" alt="drawing"/>
 
 <!--
 
