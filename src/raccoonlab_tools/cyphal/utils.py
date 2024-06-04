@@ -4,6 +4,7 @@
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
 import time
+import logging
 import asyncio
 import numpy as np
 from typing import Optional
@@ -64,9 +65,9 @@ class NodeFinder:
         client = self.node.make_client(uavcan.node.GetInfo_1_0, dest_node_id)
         for attempt in range(number_of_attempts):
             if attempt == 0:
-                print(f"[DEBUG] NodeInfo: send request to {dest_node_id}")
+                logging.debug(f"NodeInfo: send request to {dest_node_id}")
             else:
-                print(f"[DEBUG] NodeInfo: send request to {dest_node_id} ({attempt + 1})")
+                logging.debug(f"NodeInfo: send request to {dest_node_id} ({attempt + 1})")
             response = await client.call(request)
             if response is not None:
                 break
@@ -75,7 +76,7 @@ class NodeFinder:
         if response is not None:
             node_info = NodeInfo.create_from_cyphal_response(response)
         else:
-            print(f"[WARN] Node {dest_node_id} has not respond to NodeInfo request.")
+            logging.warn(f"Node {dest_node_id} has not respond to NodeInfo request.")
             node_info = None
         return node_info
 
@@ -172,11 +173,11 @@ class PortRegisterInterface:
         read_value = await self.registers.register_acess(dest_node_id, register_name)
 
         if read_value is None:
-            print(f"[WARN] Register {register_name} has not been responded")
+            logging.error(f"y r {register_name} # no response")
             return None
 
         if read_value.natural16 is None:
-            print(f"[ERROR] Register {register_name} is not natural16")
+            logging.error(f"y r {register_name} # not natural16")
             return None
 
         return int(read_value.natural16.value[0])
@@ -190,11 +191,11 @@ class PortRegisterInterface:
         read_value = await self.registers.register_acess(dest_node_id, register_name, set_value)
 
         if read_value is None:
-            print(f"[WARN] Register {register_name} has not been responded")
+            logging.error(f"y r {register_name} # no response")
             return None
 
         if read_value.natural16 is None:
-            print(f"[ERROR] Register {register_name} is not natural16")
+            logging.error(f"y r {register_name} # not natural16")
             return None
 
         return int(read_value.natural16.value[0])
