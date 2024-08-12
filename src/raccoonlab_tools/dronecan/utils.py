@@ -103,10 +103,15 @@ class ParametersInterface:
         return responses
 
     def _callback(self, msg : dronecan.uavcan.protocol.param.GetSet.Response):
+        min_value, max_value = None, None
+        if msg is None:
+            return
         if hasattr(msg.response.value, 'boolean_value'):
             value = bool(msg.response.value.boolean_value)
         elif hasattr(msg.response.value, 'integer_value'):
             value = int(msg.response.value.integer_value)
+            min_value = msg.response.min_value.integer_value
+            max_value = msg.response.max_value.integer_value
         elif hasattr(msg.response.value, 'real_value'):
             value = float(msg.response.value.real_value)
         elif hasattr(msg.response.value, 'string_value'):
@@ -117,7 +122,9 @@ class ParametersInterface:
 
         self._parameter = Parameter(
             name = str(msg.response.name),
-            value = value
+            value = value,
+            min_value=min_value,
+            max_value=max_value
         )
 
     def _set_single_parameter(self, param : Parameter) -> Parameter:
@@ -211,7 +218,7 @@ class NodeCommander:
         self._restarted = False
 
     def store_persistent_states(self):
-        req = dronecan.uavcan.protocol.param.ExecuteOpcode.Request(opcode=1)
+        req = dronecan.uavcan.protocol.param.ExecuteOpcode.Request(opcode=0)
         self.node.request(req, self.dest_node_id, self._execute_opcode_response_cb)
         self._stored = None
         for _ in range(20):
