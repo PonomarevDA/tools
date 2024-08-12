@@ -82,7 +82,7 @@ class PMUNode:
             recv = self.recv_sound()
                 
         assert recv is not None
-        return compare_beeper_command_values(recv, msg):
+        return compare_beeper_command_values(recv, msg)
 
 def make_beeper_cmd_from_values(frequency: float, duration: float):
     return dronecan.uavcan.equipment.indication.BeepCommand(
