@@ -33,7 +33,7 @@ class Node:
         assert isinstance(self.node.node, dronecan.node.Node)
         self.params_interface = ParametersInterface()
         self.commander = NodeCommander()
-        
+
         self.params : List[Parameter]       = []
         self.int_params : List[Parameter]   = []
         self.str_params : List[Parameter]   = []
@@ -101,7 +101,7 @@ class TestGetSet:
         node = TestGetSet.node
         if not node.str_params:
             return
-        param = secrets.choice(node.str_params[1:])
+        param = secrets.choice(node.str_params)
         value = node.set_random_str_param(param.name)
         res = str(node.recv_parameter_value(param.name)).replace("\x01", '')
         assert res == value
@@ -111,7 +111,7 @@ class TestGetSet:
         node = TestGetSet.node
         if not node.int_params:
             return
-        param = secrets.choice(node.int_params[1:])
+        param = secrets.choice(node.int_params)
         value = node.set_random_int_param(param)
         res = node.recv_parameter_value(param.name)
         assert res == value
@@ -126,7 +126,7 @@ class TestGetSetVsRestart:
         node = TestGetSetVsRestart.node
         if not node.int_params:
             return
-        param = secrets.choice(node.int_params[1:])
+        param = secrets.choice(node.int_params)
         init_val = node.recv_parameter_value(param.name)
         value = node.set_random_int_param(param)
 
@@ -139,7 +139,8 @@ class TestGetSetVsRestart:
             f"{TestGetSetVsRestart.__doc__}. "
             f"Expected: {value}. "
             f"Received: {res}. "
-            f"Init value: {init_val}. "
+            f"Init value: {init_val}."
+            f"param name: {param.name}"
         )
 
         assert res == value, f"{hint}"
@@ -154,7 +155,7 @@ class TestGetSetVsRestart:
         old_value_remained = 0
         value_set_before_restart = 0
         for i in range(20):
-            param = secrets.choice(node.int_params[1:])
+            param = secrets.choice(node.int_params)
             init_value = node.recv_parameter_value(param.name)
             value = init_value
             while value == init_value:
@@ -190,7 +191,7 @@ class TestGetSetVsRestart:
         node = TestGetSetVsRestart.node
         if not node.str_params:
             return
-        param = secrets.choice(node.str_params[1:])
+        param = secrets.choice(node.str_params)
         value = node.set_random_str_param(param.name)
         node.commander.store_persistent_states()
         node.commander.restart()
@@ -211,7 +212,7 @@ class TestGetSetVsRestart:
             
         for i in range(20):
             try:
-                param = secrets.choice(node.str_params[1:])
+                param = secrets.choice(node.str_params)
                 init_value = str(node.recv_parameter_value(param.name)).replace("\x01", "")
                 value = init_value
                 while value == init_value:

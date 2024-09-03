@@ -1,6 +1,6 @@
 # common
 pyserial
-python-can
+python-can == 4.3
 pytest
 
 # dronecan related
