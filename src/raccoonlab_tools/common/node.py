@@ -33,6 +33,8 @@ class NodeInfo:
     """
     node_id : int
     name : str
+    software_version : SoftwareVersion = SoftwareVersion()
+    hardware_version : HardwareVersion = HardwareVersion()
 
     @staticmethod
     def create_from_cyphal_response(transfer : tuple):
