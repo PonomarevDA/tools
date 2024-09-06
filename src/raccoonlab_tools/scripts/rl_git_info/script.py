@@ -19,6 +19,9 @@ def main():
     latest_tag = subprocess.run(["git", "describe", "--tags", "--abbrev=0"], stdout=subprocess.PIPE, text=True).stdout.strip()
     semver = latest_tag[1:]
 
+    if not semver:
+        raise RuntimeError("The project doesn't have git tags. To make one run `git tag v0.0.0` or pull tags from remote")
+
     pattern = r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
     match = re.match(pattern, semver)
 
