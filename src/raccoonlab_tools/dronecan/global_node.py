@@ -11,7 +11,7 @@ from raccoonlab_tools.common.device_manager import DeviceManager
 
 class DronecanNode:
     node = None
-    def __init__(self) -> None:
+    def __init__(self, node_id: int = 100) -> None:
         if DronecanNode.node is None:
             transport = DeviceManager.get_device_port()
             if transport.startswith("slcan"):
@@ -23,7 +23,7 @@ class DronecanNode:
                 sys.exit(1)
 
             DronecanNode.node = dronecan.make_node(dronecan_transport,
-                                                   node_id=100,
+                                                   node_id=node_id,
                                                    bitrate=1000000,
                                                    baudrate=1000000)
         self.msg = None

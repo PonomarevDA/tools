@@ -4,7 +4,7 @@
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
 
 import dronecan
-from typing import Union, Optional
+from typing import List, Union, Optional
 from dataclasses import dataclass
 from raccoonlab_tools.common.node import NodeInfo
 from raccoonlab_tools.dronecan.global_node import DronecanNode
@@ -149,27 +149,46 @@ class NodeFinder:
     Node ID 127 is intentionally ignored because it is usually occupied by debugging tools.
     """
     node_id = None
+    nodes_ids: List[int] = None
     black_list = [127]
 
     def __init__(self, node : Optional[dronecan.node.Node] = None) -> None:
         self._node = DronecanNode().node if node is None else node
         self._response = None
+        self._found_node_id = None
 
     def find_online_node(self, time_left_sec : float = 1.1) -> int:
         assert isinstance(time_left_sec, float)
 
-        if NodeFinder.node_id is not None:
-            return NodeFinder.node_id
+        if NodeFinder.nodes_ids is not None:
+            return NodeFinder.nodes_ids[0]
 
         handler = self._node.add_handler(dronecan.uavcan.protocol.NodeStatus, self._node_status_cb)
         while time_left_sec > 0.0:
             time_left_sec -= 0.005
             self._node.spin(0.005)
-            if NodeFinder.node_id is not None:
+            if self._found_node_id is not None:
                 break
         handler.remove()
+        NodeFinder.nodes_ids = [self._found_node_id]
+        NodeFinder.node_id = self._found_node_id
+        return self._found_node_id
 
-        return NodeFinder.node_id
+    def find_online_nodes(self, time_lest_sec: float = 1.1) -> list:
+        assert isinstance(time_lest_sec, float)
+
+        NodeFinder.nodes_ids = []
+        self._found_node_id = None
+        handler = self._node.add_handler(dronecan.uavcan.protocol.NodeStatus, self._node_status_cb)
+        while time_lest_sec > 0.0:
+            time_lest_sec -= 0.005
+            self._node.spin(0.005)
+            if self._found_node_id not in NodeFinder.nodes_ids:
+                print(f"Found node {self._found_node_id}")
+                NodeFinder.nodes_ids.append(self._found_node_id)
+        print(f"Found nodes {NodeFinder.nodes_ids}")
+        handler.remove()
+        return NodeFinder.nodes_ids
 
     def get_info(self) -> NodeInfo:
         node_id = self.find_online_node()
@@ -188,7 +207,7 @@ class NodeFinder:
     def _node_status_cb(self, transfer : dronecan.node.TransferEvent):
         source_node_id = transfer.transfer.source_node_id
         if source_node_id not in NodeFinder.black_list:
-            NodeFinder.node_id = source_node_id
+            self._found_node_id  = source_node_id
 
     def _node_info_response_cb(self, transfer):
         self._response = transfer
