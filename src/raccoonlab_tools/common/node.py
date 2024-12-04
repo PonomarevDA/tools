@@ -2,7 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Copyright (c) 2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from binascii import hexlify
 from raccoonlab_tools.common.colorizer import Colors
 
@@ -33,8 +33,9 @@ class NodeInfo:
     """
     node_id : int
     name : str
-    software_version : SoftwareVersion = SoftwareVersion()
-    hardware_version : HardwareVersion = HardwareVersion()
+    software_version: SoftwareVersion = field(default_factory=SoftwareVersion)
+    hardware_version: HardwareVersion = field(default_factory=HardwareVersion)
+
 
     @staticmethod
     def create_from_cyphal_response(transfer : tuple):
