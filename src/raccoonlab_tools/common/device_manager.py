@@ -41,7 +41,7 @@ class DeviceManager:
         system = platform.system()
         if system == "Linux":
             for interface in netifaces.interfaces():
-                if interface.startswith("slcan"):
+                if interface.startswith(("slcan", "can")):
                     transports.append(CanInterface(port=interface))
 
         for port, desc, hwid in sorted(serial.tools.list_ports.comports()):

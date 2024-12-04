@@ -14,7 +14,7 @@ class DronecanNode:
     def __init__(self, node_id: int = 100) -> None:
         if DronecanNode.node is None:
             transport = DeviceManager.get_device_port()
-            if transport.startswith("slcan"):
+            if transport.startswith(("slcan", "can")):
                 dronecan_transport = f'{transport}'
             elif transport.startswith("/dev/") or transport.startswith("COM"):
                 dronecan_transport = f'slcan:{transport}'
