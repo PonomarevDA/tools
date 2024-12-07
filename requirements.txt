@@ -4,9 +4,9 @@ python-can == 4.3
 pytest
 
 # dronecan related
-pydronecan
+# pydronecan
 
 # cyphal related
-pycyphal
-pytest-asyncio
-yakut
+# pycyphal
+# pytest-asyncio
+# yakut
