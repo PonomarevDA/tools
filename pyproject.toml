@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "raccoonlab-tools"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
   { name="Dmitry Ponomarev", email="PonomarevDA96@gmail.com" },
 ]
