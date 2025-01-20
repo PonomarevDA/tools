@@ -25,6 +25,9 @@ class FirmwareManager:
             ProgrammerWindows.upload_firmware(binary_path)
         elif system == "Linux":
             StlinkLinux.upload_firmware(binary_path)
+            # cat /proc/device-tree/model
+            if (os.path.exists("/proc/device-tree/model")):
+                system == "RaspberryPi"
         elif system == "Darwin":
             print("MacOS is not supported yet.")
         else:
