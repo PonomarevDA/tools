@@ -83,6 +83,20 @@ class FirmwareManager:
 
         return version
 
+    @staticmethod
+    def check_chip_match(binary_path, chip_name):
+        """
+        Check if the chip version is supported
+        """
+        assert isinstance(binary_path, str)
+        version = FirmwareManager.get_binary_version(binary_path)
+        chip_name = FirmwareManager.get_chip_name(binary_path)
+
+        if chip_name not in FirmwareManager.supported_chip_versions[version]:
+            print(f"[ERROR] Chip {chip_name} is not supported. Please, connect appropriate node!")
+            return False
+        return True
+
 class StlinkLinux:
     @staticmethod
     def upload_firmware(binary_path):
@@ -113,10 +127,7 @@ class StlinkLinux:
             print("[INFO] Target has been found.")
             cmd = ['st-flash', "--reset", "write", binary_path, "0x8000000"]
 
-        binary_version = FirmwareManager.get_binary_version(binary_path)
-        if chip_name not in FirmwareManager.supported_chip_versions[binary_version]:
-            print(f"[ERROR] The binary file {binary_version} is not for {chip_name} chip!")
-            print(f"Supported versions: {FirmwareManager.supported_chip_versions[binary_version]}")
+        if not FirmwareManager.check_chip_match(binary_path, chip_name):
             return
 
         print(f"upload {binary_path}")
