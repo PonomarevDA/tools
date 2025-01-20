@@ -14,6 +14,11 @@ DOWNLOAD_BINARY_PATH = 'latest.bin'
 
 
 class FirmwareManager:
+    supported_chip_versions = {
+        "v2" : b"STM32F1xx",
+        "v3" : b"STM32G0Bx",
+    }
+
     @staticmethod
     def upload_firmware(binary_path):
         if not os.path.exists(binary_path):
@@ -66,6 +71,32 @@ class FirmwareManager:
         assert isinstance(binary_path, str)
         return binary_path
 
+    @staticmethod
+    def get_binary_version(binary_path):
+        """
+        The version is the last part of the file name, remove the extension
+        """
+        assert isinstance(binary_path, str)
+        # node_v2_dronecan_2025.01.17_v1.2.8_5ebe55c4.bin
+        file_name = os.path.basename(binary_path)
+        version = file_name.split('_')[1]
+
+        return version
+
+    @staticmethod
+    def check_chip_match(binary_path, chip_name):
+        """
+        Check if the chip version is supported
+        """
+        assert isinstance(binary_path, str)
+        version = FirmwareManager.get_binary_version(binary_path)
+
+        if FirmwareManager.supported_chip_versions[version] not in chip_name:
+            print(f"[ERROR] Chip {chip_name} is not supported. Please, connect appropriate node!")
+            return False
+
+        print(f"[INFO] Chip {chip_name} is supported.")
+        return True
 
 class StlinkLinux:
     @staticmethod
@@ -87,13 +118,17 @@ class StlinkLinux:
             print("[ERROR] Target device has not been found.")
             return
 
-        print(f"upload {binary_path}")
+        chip_name = res.split()[-1]
+
         if b'F1xx Medium-density' in res or b'STM32F1xx_MD' in res:
             print("[INFO] stm32f103 has been found.")
             cmd = ['st-flash', '--flash=0x00020000', "--reset", "write", binary_path, "0x8000000"]
         else:
             print("[INFO] Target has been found.")
             cmd = ['st-flash', "--reset", "write", binary_path, "0x8000000"]
+
+        if not FirmwareManager.check_chip_match(binary_path, chip_name):
+            return
 
         subprocess_with_print(cmd)
 
