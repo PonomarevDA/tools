@@ -14,6 +14,11 @@ DOWNLOAD_BINARY_PATH = 'latest.bin'
 
 
 class FirmwareManager:
+    supported_chip_versions = {
+        "v2" : [b"STM32F1xx", b"STM32F1xx_MD"],
+        "v3" : [b"STM32G0Bx"],
+    }
+
     @staticmethod
     def upload_firmware(binary_path):
         if not os.path.exists(binary_path):
@@ -66,6 +71,17 @@ class FirmwareManager:
         assert isinstance(binary_path, str)
         return binary_path
 
+    @staticmethod
+    def get_binary_version(binary_path):
+        """
+        The version is the last part of the file name, remove the extension
+        """
+        assert isinstance(binary_path, str)
+        # node_v2_dronecan_2025.01.17_v1.2.8_5ebe55c4.bin
+        file_name = os.path.basename(binary_path)
+        version = file_name.split('_')[1]
+
+        return version
 
 class StlinkLinux:
     @staticmethod
@@ -88,6 +104,8 @@ class StlinkLinux:
             return
 
         print(f"upload {binary_path}")
+        chip_name = res.split()[-1]
+
         if b'F1xx Medium-density' in res or b'STM32F1xx_MD' in res:
             print("[INFO] stm32f103 has been found.")
             cmd = ['st-flash', '--flash=0x00020000', "--reset", "write", binary_path, "0x8000000"]
@@ -95,6 +113,13 @@ class StlinkLinux:
             print("[INFO] Target has been found.")
             cmd = ['st-flash', "--reset", "write", binary_path, "0x8000000"]
 
+        binary_version = FirmwareManager.get_binary_version(binary_path)
+        if chip_name not in FirmwareManager.supported_chip_versions[binary_version]:
+            print(f"[ERROR] The binary file {binary_version} is not for {chip_name} chip!")
+            print(f"Supported versions: {FirmwareManager.supported_chip_versions[binary_version]}")
+            return
+
+        print(f"upload {binary_path}")
         subprocess_with_print(cmd)
 
     @staticmethod
@@ -144,4 +169,4 @@ def subprocess_with_print(cmd):
 
 # Just for test purposes
 if __name__ == '__main__':
-    print(FirmwareManager.upload_firmware("firmware.bin"))
+    print(FirmwareManager.upload_firmware("node_v2_dronecan_2025.01.17_v1.2.8_5ebe55c4.bin"))
