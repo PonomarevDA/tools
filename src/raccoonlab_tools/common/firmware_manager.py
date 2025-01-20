@@ -24,10 +24,11 @@ class FirmwareManager:
         if system == "Windows":
             ProgrammerWindows.upload_firmware(binary_path)
         elif system == "Linux":
-            StlinkLinux.upload_firmware(binary_path)
-            # cat /proc/device-tree/model
             if (os.path.exists("/proc/device-tree/model")):
-                system == "RaspberryPi"
+                system == "OpenocdLinux"
+                OpenocdLinux.upload_firmware(binary_path)
+            else:
+                StlinkLinux.upload_firmware(binary_path)
         elif system == "Darwin":
             print("MacOS is not supported yet.")
         else:
@@ -143,6 +144,56 @@ def subprocess_with_print(cmd):
 
     for path in execute(cmd):
         print(path, end="")
+
+class OpenocdLinux:
+    @staticmethod
+    def upload_firmware(binary_path : str):
+        interface = "stlink"
+        if (os.path.exists("/proc/device-tree/model")):
+            rpi_model = os.system('cat /proc/device-tree/model')
+            if "Raspberry Pi 5" in rpi_model:
+                interface = "raspberrypi5-gpiod"
+            if "Raspberry Pi 4" in rpi_model:
+                interface = "raspberrypi4-native"
+            elif "Raspberry Pi 2" in rpi_model:
+                interface="raspberrypi2-native"
+            elif "Raspberry Pi 3" in rpi_model:
+                print("Raspberry Pi 3 is not supported yet")
+                return
+            else:
+                print("Unknown RaspberryPi model")
+                interface = "raspberrypi-native.cfg"
+        target = OpenocdLinux.get_target(interface)
+        cmd = ["openocd", "-c", f"source [find interface/{interface}.cfg]\
+                                    set CHIPNAME {target}\
+                                    source [find target/{target}.cfg]\
+                                    reset_config  srst_nogate\
+                                    init\
+                                    targets\
+                                    reset halt\
+                                    {target} mass_erase 0\
+                                    flash write_image erase {binary_path} $offset\
+                                    flash verify_image {binary_path} $offset\
+                                    reset run\
+                                    exit"]
+        subprocess_with_print(cmd)
+
+    @staticmethod
+    def get_target(interface : str):
+        cmd = ["openocd", "-f", f"interface/{interface}.cfg", "-c", "swd newdap chip cpu -enable\
+                        dap create chip.dap -chain-position chip.cpu\
+                        target create chip.cpu cortex_m -dap chip.dap\
+                        init\
+                        dap info\
+                        shutdown"]
+        
+        res = subprocess.Popen(cmd, stdout=subprocess.PIPE).communicate()[0]
+        if "Cortex-M3" in res:
+            return "stm32f1x"
+        elif "Cortex-M0+" in res:
+            return "stm32g0x"
+        else:
+            print("Unknown target")
 
 
 # Just for test purposes
