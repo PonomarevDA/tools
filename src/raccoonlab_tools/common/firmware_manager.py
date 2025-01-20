@@ -15,8 +15,8 @@ DOWNLOAD_BINARY_PATH = 'latest.bin'
 
 class FirmwareManager:
     supported_chip_versions = {
-        "v2" : [b"STM32F1xx", b"STM32F1xx_MD"],
-        "v3" : [b"STM32G0Bx"],
+        "v2" : b"STM32F1xx",
+        "v3" : b"STM32G0Bx",
     }
 
     @staticmethod
@@ -90,11 +90,12 @@ class FirmwareManager:
         """
         assert isinstance(binary_path, str)
         version = FirmwareManager.get_binary_version(binary_path)
-        chip_name = FirmwareManager.get_chip_name(binary_path)
 
-        if chip_name not in FirmwareManager.supported_chip_versions[version]:
+        if FirmwareManager.supported_chip_versions[version] not in chip_name:
             print(f"[ERROR] Chip {chip_name} is not supported. Please, connect appropriate node!")
             return False
+
+        print(f"[INFO] Chip {chip_name} is supported.")
         return True
 
 class StlinkLinux:
@@ -117,7 +118,6 @@ class StlinkLinux:
             print("[ERROR] Target device has not been found.")
             return
 
-        print(f"upload {binary_path}")
         chip_name = res.split()[-1]
 
         if b'F1xx Medium-density' in res or b'STM32F1xx_MD' in res:
@@ -130,7 +130,6 @@ class StlinkLinux:
         if not FirmwareManager.check_chip_match(binary_path, chip_name):
             return
 
-        print(f"upload {binary_path}")
         subprocess_with_print(cmd)
 
     @staticmethod
@@ -180,4 +179,4 @@ def subprocess_with_print(cmd):
 
 # Just for test purposes
 if __name__ == '__main__':
-    print(FirmwareManager.upload_firmware("node_v2_dronecan_2025.01.17_v1.2.8_5ebe55c4.bin"))
+    print(FirmwareManager.upload_firmware("firmware.bin"))
