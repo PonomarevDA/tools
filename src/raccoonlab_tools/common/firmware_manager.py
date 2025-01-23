@@ -25,7 +25,6 @@ class FirmwareManager:
             ProgrammerWindows.upload_firmware(binary_path)
         elif system == "Linux":
             if (os.path.exists("/proc/device-tree/model")):
-                print("I'm rpi")
                 OpenocdLinux.upload_firmware(binary_path)
             else:
                 StlinkLinux.upload_firmware(binary_path)
@@ -167,51 +166,38 @@ class OpenocdLinux:
         print(f"Using {interface} interface")
 
         target = OpenocdLinux.get_target(interface)
-        cmd = ["openocd", "-c", f"source [find interface/{interface}.cfg]\
-                                    set CHIPNAME {target}\
-                                    source [find target/{target}.cfg]\
-                                    reset_config  srst_nogate\
-                                    init\
-                                    targets\
-                                    reset halt\
-                                    {target} mass_erase 0\
-                                    flash write_image erase {binary_path} $offset\
-                                    flash verify_image {binary_path} $offset\
-                                    reset run\
-                                    exit"]
-        subprocess_with_print(cmd)
+        cmd = ["openocd", "-c", f'source [find interface/{interface}.cfg];\
+                                    set CHIPNAME {target};\
+                                    source [find target/{target}.cfg];\
+                                    program {binary_path} verify reset exit;']
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process.wait()
+        _, stdout = process.communicate()
+        print(stdout.decode())
 
     @staticmethod
     def get_target(interface : str):
-        cmd = ["openocd", "-c",
-                        f"source [find interface/{interface}.cfg]\n\
-                        swd newdap chip cpu -enable\n\
-                        dap create chip.dap -chain-position chip.cpu\n\
-                        target create chip.cpu cortex_m -dap chip.dap\n\
-                        init\n\
-                        dap info\n\
-                        exit\n\
+        cmd = ["openocd", "-c", f"source [find interface/{interface}.cfg];\
+                        swd newdap chip cpu -enable; dap create chip.dap -chain-position chip.cpu;\
+                        target create chip.cpu cortex_m -dap chip.dap;\
+                        init;\
+                        dap info;\
+                        exit;\
                         shutdown"]
-        # Execute the command and capture the output
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            lines = result.stdout
-            print("lines:", lines)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process.wait()
+        _, stdout = process.communicate()
 
-            # Check for specific keywords in the output
-            if "Cortex-M3" in lines:
-                print("Detected: stm32f1x")
-                return "stm32f1x"
-            elif "Cortex-M0+" in lines:
-                print("Detected: stm32g0x")
-                return "stm32g0x"
-            else:
-                print("Unknown target")
-                raise Exception("Unknown target")
-        except subprocess.CalledProcessError as e:
-            print("Command execution failed")
-            print(e)
-            raise Exception("Command execution failed")
+        lines = stdout.decode()
+        if "Cortex-M3" in lines:
+            print("Detected: stm32f1x")
+            return "stm32f1x"
+        elif "Cortex-M0+" in lines:
+            print("Detected: stm32g0x")
+            return "stm32g0x"
+        else:
+            print("Unknown target")
+            raise RuntimeError("Unknown target")
 
 # Just for test purposes
 if __name__ == '__main__':
