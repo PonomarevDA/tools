@@ -24,7 +24,10 @@ class FirmwareManager:
         if system == "Windows":
             ProgrammerWindows.upload_firmware(binary_path)
         elif system == "Linux":
-            StlinkLinux.upload_firmware(binary_path)
+            if (os.path.exists("/proc/device-tree/model")):
+                OpenocdLinux.upload_firmware(binary_path)
+            else:
+                StlinkLinux.upload_firmware(binary_path)
         elif system == "Darwin":
             print("MacOS is not supported yet.")
         else:
@@ -141,6 +144,60 @@ def subprocess_with_print(cmd):
     for path in execute(cmd):
         print(path, end="")
 
+class OpenocdLinux:
+    @staticmethod
+    def upload_firmware(binary_path : str):
+        interface = "stlink"
+        if (os.path.exists("/proc/device-tree/model")):
+            rpi_model = os.popen('cat /proc/device-tree/model').read()
+            print(rpi_model)
+            if "Raspberry Pi 5" in rpi_model:
+                interface = "raspberrypi5-gpiod"
+            if "Raspberry Pi 4" in rpi_model:
+                interface = "raspberrypi4-native"
+            elif "Raspberry Pi 2" in rpi_model:
+                interface="raspberrypi2-native"
+            elif "Raspberry Pi 3" in rpi_model:
+                print("Raspberry Pi 3 is not supported yet")
+                return
+            else:
+                print("Unknown RaspberryPi model")
+                interface = "raspberrypi-native"
+        print(f"Using {interface} interface")
+
+        target = OpenocdLinux.get_target(interface)
+        cmd = ["openocd", "-c", f'source [find interface/{interface}.cfg];\
+                                    set CHIPNAME {target};\
+                                    source [find target/{target}.cfg];\
+                                    program {binary_path} verify reset exit;']
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process.wait()
+        _, stdout = process.communicate()
+        print(stdout.decode())
+
+    @staticmethod
+    def get_target(interface : str):
+        cmd = ["openocd", "-c", f"source [find interface/{interface}.cfg];\
+                        swd newdap chip cpu -enable; dap create chip.dap -chain-position chip.cpu;\
+                        target create chip.cpu cortex_m -dap chip.dap;\
+                        init;\
+                        dap info;\
+                        exit;\
+                        shutdown"]
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process.wait()
+        _, stdout = process.communicate()
+
+        lines = stdout.decode()
+        if "Cortex-M3" in lines:
+            print("Detected: stm32f1x")
+            return "stm32f1x"
+        elif "Cortex-M0+" in lines:
+            print("Detected: stm32g0x")
+            return "stm32g0x"
+        else:
+            print("Unknown target")
+            raise RuntimeError("Unknown target")
 
 # Just for test purposes
 if __name__ == '__main__':
