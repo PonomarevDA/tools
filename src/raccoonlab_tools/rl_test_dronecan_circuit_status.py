@@ -42,18 +42,21 @@ class TestDeviceTemperature:
     def test_temperature():
         node = DronecanNode()
         msg = node.sub_once(dronecan.uavcan.equipment.device.Temperature)
+        assert msg is not None, "Not recevied"
         assert TEMPERATURE_MIN <= msg.message.temperature <= TEMPERATURE_MAX
 
     @staticmethod
     def test_device_id():
         node = DronecanNode()
         msg = node.sub_once(dronecan.uavcan.equipment.device.Temperature)
+        assert msg is not None, "Not recevied"
         assert msg.message.device_id == DEVICE_ID
 
     @staticmethod
     def test_error_flags():
         node = DronecanNode()
         msg = node.sub_once(dronecan.uavcan.equipment.device.Temperature)
+        assert msg is not None, "Not recevied"
         assert msg.message.error_flags == ERROR_FLAGS
 
 @pytest.mark.dependency(depends=["test_node_existance"])
@@ -64,6 +67,7 @@ class TestCircuitStatus:
         node = DronecanNode()
         msg = node.sub_once(dronecan.uavcan.equipment.power.CircuitStatus, FILTER_5V,
                             timeout_sec=2.5)
+        assert msg is not None, "Not recevied"
         assert msg.message.circuit_id == CIRCUIT_5V_ID
 
     @staticmethod
@@ -71,6 +75,7 @@ class TestCircuitStatus:
         node = DronecanNode()
         msg = node.sub_once(dronecan.uavcan.equipment.power.CircuitStatus, FILTER_VIN,
                             timeout_sec=2.5)
+        assert msg is not None, "Not recevied"
         assert msg.message.circuit_id == CIRCUIT_VIN_ID
 
     @staticmethod
@@ -78,6 +83,7 @@ class TestCircuitStatus:
         node = DronecanNode()
         msg = node.sub_once(dronecan.uavcan.equipment.power.CircuitStatus, FILTER_5V,
                             timeout_sec=2.5)
+        assert msg is not None, "Not recevied"
         assert VOLTAGE_5V_MIN <= msg.message.voltage <= VOLTAGE_5V_MAX
 
     @staticmethod
@@ -85,6 +91,7 @@ class TestCircuitStatus:
         node = DronecanNode()
         msg = node.sub_once(dronecan.uavcan.equipment.power.CircuitStatus, FILTER_VIN,
                             timeout_sec=2.5)
+        assert msg is not None, "Not recevied"
         assert VOLTAGE_VIN_MIN <= msg.message.voltage <= VOLTAGE_VIN_MAX
 
     @staticmethod
@@ -92,6 +99,7 @@ class TestCircuitStatus:
         node = DronecanNode()
         msg = node.sub_once(dronecan.uavcan.equipment.power.CircuitStatus, FILTER_5V,
                             timeout_sec=2.5)
+        assert msg is not None, "Not recevied"
         assert msg.message.error_flags == ERROR_FLAGS
 
     @staticmethod
@@ -99,6 +107,7 @@ class TestCircuitStatus:
         node = DronecanNode()
         msg = node.sub_once(dronecan.uavcan.equipment.power.CircuitStatus, FILTER_VIN,
                             timeout_sec=2.5)
+        assert msg is not None, "Not recevied"
         assert msg.message.error_flags == ERROR_FLAGS
 
 def main():

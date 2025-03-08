@@ -97,10 +97,10 @@ class LightsCommander:
             self.color = uavcan.equipment.indication.RGB565(red=color.red, green=color.green, blue=color.blue)
 
             self.commands = uavcan.equipment.indication.SingleLightCommand(
-                light_id=1, color=self.color
+                light_id=0, color=self.color
             )
 
-            self.node.spin(0.5)
+            self.node.spin(0.1)
             if len(self.online_nodes) >= 1:
                 self.light_command_msg = uavcan.equipment.indication.LightsCommand(
                     commands=[self.commands],
@@ -108,7 +108,7 @@ class LightsCommander:
                     model_name="simulated_light_commander",
                 )
                 self.node.broadcast(self.light_command_msg)
-                print("Pub LightsCommand")
+                print("Pub LightsCommand", color_name)
             else:
                 print("There is no any online node yet...")
 

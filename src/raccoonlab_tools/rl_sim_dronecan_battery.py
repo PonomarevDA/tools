@@ -2,6 +2,7 @@
 # This software is distributed under the terms of the MIT License.
 # Copyright (c) 2023 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
+import sys
 import argparse
 import dronecan
 from dronecan import uavcan
@@ -11,10 +12,10 @@ class Battery:
         self.node = node
         self.battery_msg = uavcan.equipment.power.BatteryInfo(
             temarature = 310,
-            voltage = 48.5,
+            voltage = 30.5,
             current = 0.0,
             state_of_health_pct = 127,
-            state_of_charge_pct = 100,
+            state_of_charge_pct = 0,
             model_name = "simulated_battery"
         )
         self.node.add_handler(uavcan.protocol.NodeStatus, self._node_status_callback)
@@ -28,6 +29,8 @@ class Battery:
                 print('Pub BatteryInfo')
             else:
                 print("There is no any online node yet...")
+            self.node.spin(0.5)
+            # sys.exit(1)
 
     def _node_status_callback(self, msg):
         self.online_nodes.add(msg.transfer.source_node_id)
