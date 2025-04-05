@@ -5,7 +5,9 @@
 """
 Test Cyphal node specification compliance.
 
-Dependencies: pycyphal ...
+Dependencies:
+pip install pycyphal pytest python-can pyserial netifaces pytest-asyncio pytest-dependency
+pip install -e .
 """
 import os
 import sys
@@ -15,12 +17,21 @@ import asyncio
 import secrets
 import string
 import re
-import pytest
+
+if not os.environ.get("CYPHAL_PATH"):
+    os.environ["CYPHAL_PATH"] = "/home/nex/.cyphal/zubax_dsdl:/home/nex/.cyphal/public_regulated_data_types:/home/nex/.cyphal/ds015"
+if not os.environ.get("UAVCAN__CAN__IFACE"):
+    os.environ["UAVCAN__CAN__IFACE"] = "socketcan:slcan0"
+if not os.environ.get("UAVCAN__CAN__MTU"):
+    os.environ["UAVCAN__CAN__MTU"] = "8"
+if not os.environ.get("UAVCAN__NODE__ID"):
+    os.environ["UAVCAN__NODE__ID"] = "126"
 
 import pycyphal.application
 # pylint: disable=import-error
 import uavcan
 import uavcan.node.port.List_1_0
+import pytest
 
 from raccoonlab_tools.cyphal.utils import NodeFinder, RegisterInterface, PortRegisterInterface, NodeCommander
 from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol

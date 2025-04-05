@@ -12,7 +12,7 @@ import argparse
 
 class Printer:
     @staticmethod
-    def print(filename, printer_name="XP-365B"):
+    def print(filename, printer_name="Xprinter-XP-365B"):
         if not os.path.isfile(filename):
             logging.error("File %s is not exist", filename)
             return
@@ -28,8 +28,8 @@ class Printer:
             return
 
         cmd = ["lp", "-o", "media=Custom.40x30mm", "-d", printer_name, filename]
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        proc.communicate()
+        res = subprocess.check_output(cmd).decode()
+        print(res)
 
 if __name__ =="__main__":
     parser = argparse.ArgumentParser(description=__doc__)
