@@ -34,7 +34,7 @@ rl-test-cyphal-specification = "raccoonlab_tools.scripts.cyphal.test_specificati
 
 rl-test-dronecan-gps-mag-baro = "raccoonlab_tools.scripts.dronecan.test_gps_mag_baro:main"
 rl-test-dronecan-lights = "raccoonlab_tools.scripts.dronecan.test_lights:main"
-rl-test-dronecan-specification = "raccoonlab_tools.scripts.dronecan.test_specification:main"
+rl-test-dronecan-specification = "raccoonlab_tools.rl_test_dronecan_specification:main"
 rl-get-dronecan-params = "raccoonlab_tools.scripts.dronecan.get_params:main"
 rl-set-dronecan-params = "raccoonlab_tools.scripts.dronecan.set_params:main"
 
