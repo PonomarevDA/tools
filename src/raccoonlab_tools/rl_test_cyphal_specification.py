@@ -2,6 +2,11 @@
 # This software is distributed under the terms of the MIT License.
 # Copyright (c) 2023-2024 Dmitry Ponomarev.
 # Author: Dmitry Ponomarev <ponomarevda96@gmail.com>
+"""
+Test Cyphal node specification compliance.
+
+Dependencies: pycyphal ...
+"""
 import os
 import sys
 import time
@@ -16,6 +21,7 @@ import pycyphal.application
 # pylint: disable=import-error
 import uavcan
 import uavcan.node.port.List_1_0
+
 from raccoonlab_tools.cyphal.utils import NodeFinder, RegisterInterface, PortRegisterInterface, NodeCommander
 from raccoonlab_tools.common.protocol_parser import CanProtocolParser, Protocol
 from raccoonlab_tools.common.device_manager import DeviceManager
